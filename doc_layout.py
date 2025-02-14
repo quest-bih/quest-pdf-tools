@@ -8,6 +8,7 @@ import fitz  # PyMuPDF
 from pathlib import Path
 from typing import List, Dict, Any
 import csv
+from PIL import Image
 
 # Set up logging
 logging.basicConfig(
@@ -91,11 +92,56 @@ class PDFLayoutProcessor:
                     ])
         logger.info(f"Saved detection results to {output_path}")
 
+    def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Reorder detections using a virtual middle line to handle columns."""
+        if not elements:
+            return elements
+
+        import numpy as np
+
+        # Convert elements to numpy arrays for analysis
+        boxes = np.array([elem['coordinates'] for elem in elements])
+        
+        # Calculate page dimensions and middle line
+        page_width = np.max(boxes[:, 2])  # rightmost coordinate
+        virtual_middle = page_width / 2
+        
+        # Separate elements into left and right columns
+        left_column = []
+        right_column = []
+        
+        for idx, elem in enumerate(elements):
+            x0 = elem['coordinates'][0]
+            if x0 < virtual_middle:
+                left_column.append((idx, elem))
+            else:
+                right_column.append((idx, elem))
+        
+        # Sort each column by vertical position (top to bottom)
+        left_column.sort(key=lambda x: x[1]['coordinates'][1])
+        right_column.sort(key=lambda x: x[1]['coordinates'][1])
+        
+        # Combine columns - left column first, then right column
+        reordered_elements = []
+        for idx, elem in left_column:
+            reordered_elements.append(elements[idx])
+        for idx, elem in right_column:
+            reordered_elements.append(elements[idx])
+    
+        return reordered_elements
+    
     def process_pdf(self, pdf_path: str) -> tuple:
         """Process PDF and return paths to output files."""
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
-        temp_dir = Path(f"{pdf_name}_temp")
+        
+        # Create pdfs directory and PDF-specific subdirectory
+        pdfs_dir = Path("pdfs")
+        pdf_output_dir = pdfs_dir / pdf_name
+        pdfs_dir.mkdir(exist_ok=True)
+        pdf_output_dir.mkdir(exist_ok=True)
+        
+        temp_dir = pdf_output_dir / f"{pdf_name}_temp"
         
         # Define category names and colors (RGB format)
         category_names = {
@@ -124,7 +170,7 @@ class PDFLayoutProcessor:
 
             # Open the PDF for modification
             pdf_document = fitz.open(pdf_path)
-            output_pdf_path = Path(f"{pdf_name}_processed.pdf")
+            output_pdf_path = pdf_output_dir / f"{pdf_name}_processed.pdf"
             
             for page_num in range(len(pdf_document)):
                 # Convert PDF page to image for YOLO detection
@@ -197,7 +243,7 @@ class PDFLayoutProcessor:
             pdf_document.close()
 
             # Save detection results to JSON
-            results_path = Path(f"{pdf_name}_detections.csv")
+            results_path = pdf_output_dir / f"{pdf_name}_detections.csv"
             self._save_detection_results(pages_data, results_path)
 
             return str(output_pdf_path), str(results_path)
@@ -206,38 +252,7 @@ class PDFLayoutProcessor:
             # Clean up temporary directory
             self._cleanup_temp_dir(temp_dir)
 
-    def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Reorder detections from upper-left to lower-right (reading order)."""
-        if not elements:
-            return elements
-
-        # Define a y-threshold to consider elements part of the same row
-        y_threshold = 50  # Adjust based on document layout
-
-        # Sort primarily by y (top to bottom), then by x (left to right)
-        elements.sort(key=lambda e: (e['coordinates'][1], e['coordinates'][0]))
-
-        # Group elements into rows based on y-spacing
-        rows = []
-        current_row = [elements[0]]
-
-        for i in range(1, len(elements)):
-            prev_y = current_row[-1]['coordinates'][1]
-            curr_y = elements[i]['coordinates'][1]
-
-            if abs(curr_y - prev_y) < y_threshold:
-                current_row.append(elements[i])
-            else:
-                # Sort the current row left to right and save it
-                current_row.sort(key=lambda e: e['coordinates'][0])
-                rows.append(current_row)
-                current_row = [elements[i]]
-
-        # Sort and append last row
-        current_row.sort(key=lambda e: e['coordinates'][0])
-        rows.append(current_row)
-        # Flatten back into a single list
-        return [elem for row in rows for elem in row]
+ 
 
 # # Usage example
 # if __name__ == "__main__":

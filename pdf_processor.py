@@ -1,9 +1,10 @@
 import os
 import csv
 import fitz  # PyMuPDF
-from typing import List, Tuple
+from typing import List, Dict
 import logging
-from typing import Dict, List, Any
+from pathlib import Path
+from PIL import Image
 
 # Set up logging
 logging.basicConfig(
@@ -16,8 +17,13 @@ class PDFProcessor:
     def __init__(self, pdf_path: str, results_csv: str, output_pdf: str):
         """Initialize the PDF processor with file paths."""
         self.pdf_path = pdf_path
-        self.results_csv = results_csv
-        self.output_pdf = output_pdf
+        self.pdf_name = Path(pdf_path).stem
+        self.pdf_dir = Path('pdfs') / self.pdf_name
+        self.pdf_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Update paths to use pdf directory
+        self.results_csv = str(self.pdf_dir / Path(results_csv).name)
+        self.output_pdf = str(self.pdf_dir / Path(output_pdf).name)
         
         # Get PDF dimensions
         doc = fitz.open(pdf_path)
@@ -84,14 +90,15 @@ class PDFProcessor:
             page_detections = {}
             
             # Read CSV file
-            with open(self.results_csv, 'r') as f:
+            with open(self.results_csv, "r") as f:
                 csv_reader = csv.DictReader(f)
                 for row in csv_reader:
-                    page_num = int(row.get("page_number :", 0)) - 1
+                    # Fix: Use correct column name from CSV
+                    page_num = int(row.get("page_number", 0)) - 1
                     if page_num not in page_detections:
                         page_detections[page_num] = []
                     page_detections[page_num].append(row)
-            
+                    
             # Process each page
             for page_num in range(len(doc)):
                 if page_num in page_detections:
@@ -123,6 +130,69 @@ class PDFProcessor:
         except Exception as e:
             logging.error(f"Error processing PDF: {e}")
             return False
+
+
+    def extract_figures(self, pdf_path: str, output_dir: str = None) -> List[str]:
+        """Extract figures from PDF using detection results."""
+        pdf_path = Path(pdf_path)
+        pdf_name = pdf_path.stem
+        pdf_dir = Path('pdfs') / pdf_name
+        
+        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
+        
+        if not Path(results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+            self.process_pdf(str(pdf_path))
+
+        output_dir = pdf_dir / 'figures' if output_dir is None else Path(output_dir)
+        
+        output_dir.mkdir(parents=True, exist_ok=True)
+        extracted_figures = []
+
+        try:
+            # Read detection results
+            page_figures = {}
+            with open(results_csv, 'r') as f:
+                csv_reader = csv.DictReader(f)
+                for row in csv_reader:
+                    if int(row['class_id']) == 3:  # Figure class ID
+                        page_num = int(row['page_number']) - 1
+                        if page_num not in page_figures:
+                            page_figures[page_num] = []
+                        page_figures[page_num].append({
+                            'x0': float(row['x0']),
+                            'y0': float(row['y0']),
+                            'x1': float(row['x1']),
+                            'y1': float(row['y1'])
+                        })
+
+            # Extract figures from PDF
+            doc = fitz.open(pdf_path)
+            for page_num, figures in page_figures.items():
+                page = doc[page_num]
+                pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+                for fig_idx, coords in enumerate(figures):
+                    # Convert coordinates from 300 DPI to image coordinates
+                    x0 = int(coords['x0'])
+                    y0 = int(coords['y0'])
+                    x1 = int(coords['x1'])
+                    y1 = int(coords['y1'])
+
+                    # Crop and save figure
+                    figure = img.crop((x0, y0, x1, y1))
+                    figure_name = f"{pdf_path.stem}_page{page_num + 1}_figure{fig_idx + 1}.png"
+                    figure_path = output_dir / figure_name
+                    figure.save(str(figure_path))
+                    extracted_figures.append(str(figure_path))
+                    logging.info(f"Extracted figure: {figure_path}")
+
+            return extracted_figures
+
+        except Exception as e:
+            logging.error(f"Error extracting figures from PDF: {e}")
+            return []
 
 
 # def main():
