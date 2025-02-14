@@ -141,7 +141,6 @@ class PDFProcessor:
             logging.error(f"Error processing PDF: {e}")
             return False
 
-
     def extract_figures(self, pdf_path: str, output_dir: str = None) -> List[str]:
         """Extract figures from PDF using detection results."""
         pdf_path = Path(pdf_path)
@@ -271,6 +270,101 @@ class PDFProcessor:
         except Exception as e:
             logging.error(f"Error extracting tables from PDF: {e}")
             return []
+
+    def extract_text(self, pdf_path: str) -> str:
+        """Extract text from PDF using detection results and specified logic."""
+        pdf_path = Path(pdf_path)
+        pdf_name = pdf_path.stem
+        pdf_dir = Path('pdfs') / pdf_name
+        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
+        output_txt = pdf_dir / f'{pdf_name}.txt'
+        
+        if not Path(results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+            processor = PDFLayoutProcessor()
+            _, output_csv = processor.process_pdf(str(pdf_path))
+            results_csv = Path(output_csv)
+
+        try:
+            doc = fitz.open(pdf_path)
+            extracted_text = []
+            
+            # Get PDF dimensions for scaling
+            page = doc[0]
+            pdf_width = page.rect.width
+            pdf_height = page.rect.height
+            
+            # Calculate scaling factors (300 DPI to 72 DPI)
+            scale_x = pdf_width / (pdf_width * 300 / 72)
+            scale_y = pdf_height / (pdf_height * 300 / 72)
+            
+            # Read CSV file and store rows (only class 0 and 1)
+            with open(results_csv, 'r') as f:
+                csv_reader = csv.DictReader(f)
+                rows = [row for row in csv_reader if int(row['class_id']) in [0, 1]]
+            
+            # Process each row
+            for i in range(len(rows)):
+                current_row = rows[i]
+                current_page = doc[int(current_row['page_number']) - 1]
+                
+                # Scale coordinates from 300 DPI to PDF space (72 DPI)
+                current_rect = fitz.Rect(
+                    float(current_row['x0']) * scale_x,
+                    float(current_row['y0']) * scale_y,
+                    float(current_row['x1']) * scale_x,
+                    float(current_row['y1']) * scale_y
+                )
+                
+                current_text = current_page.get_text("text", clip=current_rect)
+                current_text = " ".join(current_text.split("\n"))
+                
+                if not current_text:  # Skip empty text blocks
+                    continue
+                
+                # If this is not the last row, check the next row
+                if i < len(rows) - 1:
+                    next_row = rows[i + 1]
+                    next_page = doc[int(next_row['page_number']) - 1]
+                    
+                    # Scale coordinates for next rectangle
+                    next_rect = fitz.Rect(
+                        float(next_row['x0']) * scale_x,
+                        float(next_row['y0']) * scale_y,
+                        float(next_row['x1']) * scale_x,
+                        float(next_row['y1']) * scale_y
+                    )
+                    
+                    next_text = next_page.get_text("text", clip=next_rect)
+                    next_text = " ".join(next_text.split("\n"))
+                    
+                    # Check if current and next elements are from the same class
+                    if current_row['class_id'] == next_row['class_id']:
+                        # If next text starts with lowercase, join with space
+                        if next_text and next_text[0].islower():
+                            extracted_text.append(current_text + " ")
+                        else:
+                            extracted_text.append(current_text + "\n")
+                    else:
+                        # Different classes, join with double newline
+                        extracted_text.append(current_text + "\n\n")
+                else:
+                    # Last row, just append the text
+                    extracted_text.append(current_text)
+
+            doc.close()
+            
+            # Join all text and save to file
+            final_text = "".join(extracted_text)
+            with open(output_txt, 'w', encoding='utf-8') as f:
+                f.write(final_text)
+            
+            logging.info(f"Extracted text saved to: {output_txt}")
+            return final_text
+
+        except Exception as e:
+            logging.error(f"Error extracting text from PDF: {e}")
+            return ""
 
 
 # def main():

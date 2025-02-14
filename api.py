@@ -8,6 +8,7 @@ import shutil
 import logging
 from doc_layout import PDFLayoutProcessor
 from pdf_processor import PDFProcessor
+# from doc_layout_surya import PDFLayoutProcessor
 
 app = FastAPI(
     title="PDF Layout Processing API",
@@ -177,6 +178,37 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
         logger.error(f"Error extracting tables: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/extract-text/")
+async def extract_text(file: UploadFile):
+    try:
+        # Create a unique directory for this PDF
+        pdf_dir = UPLOADS_DIR / Path(file.filename).stem
+        pdf_dir.mkdir(exist_ok=True)
+        
+        # Save uploaded file
+        file_path = pdf_dir / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Create PDFProcessor instance
+        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        
+        # Extract text
+        extracted_text = processor.extract_text(file_path)
+        
+        if not extracted_text:
+            return JSONResponse(
+                status_code=404,
+                content={"message": "No text found in the PDF"}
+            )
+        
+        return JSONResponse(
+            content={"text": extracted_text}
+        )
+    
+    except Exception as e:
+        logger.error(f"Error extracting text: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
