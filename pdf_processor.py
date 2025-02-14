@@ -5,6 +5,7 @@ from typing import List, Dict
 import logging
 from pathlib import Path
 from PIL import Image
+from doc_layout import PDFLayoutProcessor
 
 # Set up logging
 logging.basicConfig(
@@ -80,7 +81,16 @@ class PDFProcessor:
     def remove_irrelevant_boxes(self) -> bool:
         """Process the PDF and remove irrelevant boxes."""
         if not self.validate_inputs():
-            return False
+            # Process the PDF using PDFLayoutProcessor if validation fails
+            try:
+                processor = PDFLayoutProcessor()
+                _, output_csv = processor.process_pdf(self.pdf_path)
+                logging.info(f"PDF processed using PDFLayoutProcessor. Results saved to {output_csv}")
+                self.results_csv = output_csv  # Update the results CSV path
+                return self.remove_irrelevant_boxes()  # Retry with the new CSV
+            except Exception as e:
+                logging.error(f"Error processing PDF with PDFLayoutProcessor: {e}")
+                return False
         
         try:
             doc = fitz.open(self.pdf_path)
@@ -142,7 +152,10 @@ class PDFProcessor:
         
         if not Path(results_csv).exists():
             logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
-            self.process_pdf(str(pdf_path))
+            # Use PDFLayoutProcessor instead of self.process_pdf
+            processor = PDFLayoutProcessor()
+            _, output_csv = processor.process_pdf(str(pdf_path))
+            results_csv = Path(output_csv)
 
         output_dir = pdf_dir / 'figures' if output_dir is None else Path(output_dir)
         
@@ -204,7 +217,10 @@ class PDFProcessor:
         
         if not Path(results_csv).exists():
             logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
-            self.process_pdf(str(pdf_path))
+            # Use PDFLayoutProcessor instead of self.process_pdf
+            processor = PDFLayoutProcessor()
+            _, output_csv = processor.process_pdf(str(pdf_path))
+            results_csv = Path(output_csv)
 
         output_dir = pdf_dir / 'tables' if output_dir is None else Path(output_dir)
         
