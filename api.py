@@ -129,6 +129,54 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
         logger.error(f"Error extracting figures: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/extract-tables/")
+async def extract_tables(file: UploadFile, output_dir: str = None):
+    try:
+        # Create a unique directory for this PDF
+        pdf_dir = UPLOADS_DIR / Path(file.filename).stem
+        pdf_dir.mkdir(exist_ok=True)
+        
+        # Save uploaded file
+        file_path = pdf_dir / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # If no output_dir specified, use the PDF directory
+        if not output_dir:
+            output_dir = str(pdf_dir) + "/tables"
+
+        # Create PDFProcessor instance
+        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        
+        # Extract tables
+        extracted_tables = processor.extract_tables(file_path, output_dir)
+        
+        if not extracted_tables:
+            return JSONResponse(
+                status_code=404,
+                content={"message": "No tables found in the PDF"}
+            )
+
+        # Create a ZIP file containing all extracted tables
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for table_path in extracted_tables:
+                zip_file.write(table_path, Path(table_path).name)  # Use just the filename
+        
+        zip_buffer.seek(0)
+        logging.info(f"Tables extracted and saved to {output_dir}")
+        return StreamingResponse(
+            io.BytesIO(zip_buffer.getvalue()),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename={Path(file_path).stem}_tables.zip"
+            }
+        )
+    
+    except Exception as e:
+        logger.error(f"Error extracting tables: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -194,6 +194,68 @@ class PDFProcessor:
             logging.error(f"Error extracting figures from PDF: {e}")
             return []
 
+    def extract_tables(self, pdf_path: str, output_dir: str = None) -> List[str]:
+        """Extract tables from PDF using detection results."""
+        pdf_path = Path(pdf_path)
+        pdf_name = pdf_path.stem
+        pdf_dir = Path('pdfs') / pdf_name
+        
+        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
+        
+        if not Path(results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+            self.process_pdf(str(pdf_path))
+
+        output_dir = pdf_dir / 'tables' if output_dir is None else Path(output_dir)
+        
+        output_dir.mkdir(parents=True, exist_ok=True)
+        extracted_tables = []
+
+        try:
+            # Read detection results
+            page_tables = {}
+            with open(results_csv, 'r') as f:
+                csv_reader = csv.DictReader(f)
+                for row in csv_reader:
+                    if int(row['class_id']) == 5:  # Table class ID
+                        page_num = int(row['page_number']) - 1
+                        if page_num not in page_tables:
+                            page_tables[page_num] = []
+                        page_tables[page_num].append({
+                            'x0': float(row['x0']),
+                            'y0': float(row['y0']),
+                            'x1': float(row['x1']),
+                            'y1': float(row['y1'])
+                        })
+
+            # Extract tables from PDF
+            doc = fitz.open(pdf_path)
+            for page_num, tables in page_tables.items():
+                page = doc[page_num]
+                pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+                for table_idx, coords in enumerate(tables):
+                    # Convert coordinates from 300 DPI to image coordinates
+                    x0 = int(coords['x0'])
+                    y0 = int(coords['y0'])
+                    x1 = int(coords['x1'])
+                    y1 = int(coords['y1'])
+
+                    # Crop and save table
+                    table = img.crop((x0, y0, x1, y1))
+                    table_name = f"{pdf_path.stem}_page{page_num + 1}_table{table_idx + 1}.png"
+                    table_path = output_dir / table_name
+                    table.save(str(table_path))
+                    extracted_tables.append(str(table_path))
+                    logging.info(f"Extracted table: {table_path}")
+
+            return extracted_tables
+
+        except Exception as e:
+            logging.error(f"Error extracting tables from PDF: {e}")
+            return []
+
 
 # def main():
 #     # Configuration
