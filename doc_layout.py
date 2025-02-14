@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 import csv
 from PIL import Image
+import numpy as np
 
 # Set up logging
 logging.basicConfig(
@@ -92,42 +93,125 @@ class PDFLayoutProcessor:
                     ])
         logger.info(f"Saved detection results to {output_path}")
 
+
     def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Reorder detections using a virtual middle line to handle columns."""
+        """Reorder detections based on column layout or section-by-section analysis."""
         if not elements:
             return elements
-
-        import numpy as np
-
+        
         # Convert elements to numpy arrays for analysis
         boxes = np.array([elem['coordinates'] for elem in elements])
         
-        # Calculate page dimensions and middle line
+        # Calculate page dimensions
         page_width = np.max(boxes[:, 2])  # rightmost coordinate
-        virtual_middle = page_width / 2
+        page_height = np.max(boxes[:, 3])  # bottommost coordinate
         
-        # Separate elements into left and right columns
+        # Detect the number of columns
+        num_columns = self._detect_columns(boxes, page_width)
+        
+        if num_columns == 1:
+            # Single column: Sort all elements top-to-bottom
+            return self._sort_single_column(elements)
+        elif num_columns == 2:
+            # Two columns: Separate into left and right columns, then sort each
+            return self._sort_two_columns(elements, page_width / 2)
+        elif num_columns == 3:
+            # Three columns: Separate into three columns, then sort each
+            return self._sort_three_columns(elements, page_width / 3, 2 * page_width / 3)
+        else:
+            # Irregular layout: Process section by section
+            return self._process_irregular_layout(elements, page_height)
+
+    def _detect_columns(self, boxes: np.ndarray, page_width: float) -> int:
+        """Detect the number of columns based on horizontal distribution."""
+        x_coords = boxes[:, 0]  # Extract x-coordinates of bounding boxes
+        histogram, bin_edges = np.histogram(x_coords, bins=20, range=(0, page_width))
+        
+        # Identify significant peaks in the histogram (indicating columns)
+        peaks = [i for i, count in enumerate(histogram) if count > len(boxes) * 0.1]
+        
+        # Determine the number of columns based on the number of peaks
+        if len(peaks) <= 1:
+            return 1
+        elif len(peaks) == 2:
+            return 2
+        elif len(peaks) >= 3:
+            return 3
+        else:
+            return 1  # Default to single column if unsure
+
+    def _sort_single_column(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Sort elements in a single column from top to bottom."""
+        return sorted(elements, key=lambda elem: elem['coordinates'][1])
+
+    def _sort_two_columns(self, elements: List[Dict[str, Any]], middle_line: float) -> List[Dict[str, Any]]:
+        """Sort elements in two columns from top to bottom."""
         left_column = []
         right_column = []
         
-        for idx, elem in enumerate(elements):
+        for elem in elements:
             x0 = elem['coordinates'][0]
-            if x0 < virtual_middle:
-                left_column.append((idx, elem))
+            if x0 < middle_line:
+                left_column.append(elem)
             else:
-                right_column.append((idx, elem))
+                right_column.append(elem)
         
-        # Sort each column by vertical position (top to bottom)
-        left_column.sort(key=lambda x: x[1]['coordinates'][1])
-        right_column.sort(key=lambda x: x[1]['coordinates'][1])
+        # Sort each column by vertical position
+        left_column.sort(key=lambda elem: elem['coordinates'][1])
+        right_column.sort(key=lambda elem: elem['coordinates'][1])
         
-        # Combine columns - left column first, then right column
+        # Combine columns: left first, then right
+        return left_column + right_column
+
+    def _sort_three_columns(self, elements: List[Dict[str, Any]], left_line: float, right_line: float) -> List[Dict[str, Any]]:
+        """Sort elements in three columns from top to bottom."""
+        left_column = []
+        middle_column = []
+        right_column = []
+        
+        for elem in elements:
+            x0 = elem['coordinates'][0]
+            if x0 < left_line:
+                left_column.append(elem)
+            elif x0 < right_line:
+                middle_column.append(elem)
+            else:
+                right_column.append(elem)
+        
+        # Sort each column by vertical position
+        left_column.sort(key=lambda elem: elem['coordinates'][1])
+        middle_column.sort(key=lambda elem: elem['coordinates'][1])
+        right_column.sort(key=lambda elem: elem['coordinates'][1])
+        
+        # Combine columns: left first, then middle, then right
+        return left_column + middle_column + right_column
+
+    def _process_irregular_layout(self, elements: List[Dict[str, Any]], page_height: float) -> List[Dict[str, Any]]:
+        """Process elements section by section for irregular layouts."""
+        sections = []
+        current_section = []
+        previous_y = -np.inf
+        
+        for elem in sorted(elements, key=lambda elem: elem['coordinates'][1]):
+            y0 = elem['coordinates'][1]
+            
+            # Check if there's a significant gap between sections
+            if y0 - previous_y > page_height * 0.1:  # Define a threshold for section separation
+                if current_section:
+                    sections.append(current_section)
+                    current_section = []
+            
+            current_section.append(elem)
+            previous_y = y0
+        
+        if current_section:
+            sections.append(current_section)
+        
+        # Sort each section individually
         reordered_elements = []
-        for idx, elem in left_column:
-            reordered_elements.append(elements[idx])
-        for idx, elem in right_column:
-            reordered_elements.append(elements[idx])
-    
+        for section in sections:
+            reordered_elements.extend(self._sort_single_column(section))
+        
         return reordered_elements
     
     def process_pdf(self, pdf_path: str) -> tuple:
