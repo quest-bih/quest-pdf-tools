@@ -15,8 +15,34 @@ logging.basicConfig(
 )
 
 class PDFProcessor:
+    """
+    A class for processing PDF documents with various extraction and modification capabilities.
+    
+    This class provides functionality to:
+    - Remove irrelevant boxes from PDFs
+    - Extract figures, tables, and text
+    - Convert PDF content to markdown format
+    - Process and validate detection results
+    
+    Attributes:
+        pdf_path (str): Path to the input PDF file
+        pdf_name (str): Name of the PDF file without extension
+        pdf_dir (Path): Directory for storing processed files
+        results_csv (str): Path to the CSV file containing detection results
+        output_pdf (str): Path to the output PDF file
+        page_width (float): Width of the PDF page in points
+        page_height (float): Height of the PDF page in points
+    """
+    
     def __init__(self, pdf_path: str, results_csv: str, output_pdf: str):
-        """Initialize the PDF processor with file paths."""
+        """
+        Initialize the PDF processor with file paths.
+        
+        Args:
+            pdf_path (str): Path to the input PDF file
+            results_csv (str): Path to the CSV file containing detection results
+            output_pdf (str): Path where the processed PDF will be saved
+        """
         self.pdf_path = pdf_path
         self.pdf_name = Path(pdf_path).stem
         self.pdf_dir = Path('pdfs') / self.pdf_name
@@ -33,7 +59,12 @@ class PDFProcessor:
         doc.close()
         
     def validate_inputs(self) -> bool:
-        """Validate input files and directories exist."""
+        """
+        Validate that input files and directories exist.
+        
+        Returns:
+            bool: True if all required files exist, False otherwise
+        """
         if not os.path.exists(self.pdf_path):
             logging.error(f"PDF file not found: {self.pdf_path}")
             return False
@@ -43,7 +74,17 @@ class PDFProcessor:
         return True
     
     def scale_coordinates(self, coords: List[float], image_width: int, image_height: int) -> fitz.Rect:
-        """Scale coordinates from image space (300 DPI) to PDF space (72 DPI)."""
+        """
+        Scale coordinates from image space (300 DPI) to PDF space (72 DPI).
+        
+        Args:
+            coords (List[float]): List of coordinates [x0, y0, x1, y1] in image space
+            image_width (int): Width of the image in pixels
+            image_height (int): Height of the image in pixels
+            
+        Returns:
+            fitz.Rect: Scaled coordinates in PDF space
+        """
         # Convert from image coordinates to PDF points
         x0 = coords[0] * self.page_width / image_width
         y0 = coords[1] * self.page_height / image_height
@@ -52,7 +93,16 @@ class PDFProcessor:
         return fitz.Rect(x0, y0, x1, y1)
     
     def process_detections(self, detection_row: Dict[str, str], page_num: int) -> List[fitz.Rect]:
-        """Process detections for a single page and return list of rectangles."""
+        """
+        Process detections for a single page and return list of rectangles.
+        
+        Args:
+            detection_row (Dict[str, str]): Dictionary containing detection information
+            page_num (int): Page number being processed (0-based)
+            
+        Returns:
+            List[fitz.Rect]: List of rectangles to be redacted
+        """
         redactions = []
         try:
             # Calculate image dimensions for this page (300 DPI)
@@ -79,7 +129,15 @@ class PDFProcessor:
         return redactions
     
     def remove_irrelevant_boxes(self) -> bool:
-        """Process the PDF and remove irrelevant boxes."""
+        """
+        Process the PDF and remove irrelevant boxes based on detection results.
+        
+        If the detection results don't exist, it will process the PDF using PDFLayoutProcessor
+        to generate them first.
+        
+        Returns:
+            bool: True if processing was successful, False otherwise
+        """
         if not self.validate_inputs():
             # Process the PDF using PDFLayoutProcessor if validation fails
             try:
@@ -142,7 +200,17 @@ class PDFProcessor:
             return False
 
     def extract_figures(self, pdf_path: str, output_dir: str = None) -> List[str]:
-        """Extract figures from PDF using detection results."""
+        """
+        Extract figures from PDF using detection results.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            output_dir (str, optional): Directory to save extracted figures. 
+                                      Defaults to 'pdfs/{pdf_name}/figures'
+            
+        Returns:
+            List[str]: List of paths to extracted figure files
+        """
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
         pdf_dir = Path('pdfs') / pdf_name
@@ -207,7 +275,17 @@ class PDFProcessor:
             return []
 
     def extract_tables(self, pdf_path: str, output_dir: str = None) -> List[str]:
-        """Extract tables from PDF using detection results."""
+        """
+        Extract tables from PDF using detection results.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            output_dir (str, optional): Directory to save extracted tables. 
+                                      Defaults to 'pdfs/{pdf_name}/tables'
+            
+        Returns:
+            List[str]: List of paths to extracted table files
+        """
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
         pdf_dir = Path('pdfs') / pdf_name
@@ -272,7 +350,18 @@ class PDFProcessor:
             return []
 
     def extract_text(self, pdf_path: str) -> str:
-        """Extract text from PDF using detection results and specified logic."""
+        """
+        Extract text from PDF using detection results and specified logic.
+        
+        This method extracts text from title and plain text regions (class_id 0 and 1)
+        while maintaining proper spacing and formatting between text blocks.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            
+        Returns:
+            str: Extracted text content
+        """
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
         pdf_dir = Path('pdfs') / pdf_name
@@ -367,7 +456,19 @@ class PDFProcessor:
             return ""
 
     def extract_markdown(self, pdf_path: str) -> str:
-        """Extract content from PDF and convert to markdown format."""
+        """
+        Extract content from PDF and convert to markdown format.
+        
+        This method processes different types of content (text, figures, tables, formulas)
+        and converts them to appropriate markdown syntax. Images are saved separately
+        and referenced in the markdown.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            
+        Returns:
+            str: Generated markdown content
+        """
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
         pdf_dir = Path('pdfs') / pdf_name

@@ -8,7 +8,15 @@ import shutil
 import logging
 from doc_layout import PDFLayoutProcessor
 from pdf_processor import PDFProcessor
-# from doc_layout_surya import PDFLayoutProcessor
+
+"""
+FastAPI application for PDF processing and content extraction.
+
+This API provides endpoints for:
+- Processing PDF layouts
+- Removing irrelevant content (headers, footers)
+- Extracting figures, tables, text, and markdown content from PDFs
+"""
 
 app = FastAPI(
     title="PDF Layout Processing API",
@@ -30,6 +38,18 @@ UPLOADS_DIR.mkdir(exist_ok=True)
 processor = PDFLayoutProcessor()
 @app.post("/process-pdf/")
 async def process_pdf(file: UploadFile):
+    """
+    Process a PDF file to detect and analyze its layout.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        
+    Returns:
+        FileResponse: The processed PDF file
+        
+    Raises:
+        HTTPException: If processing fails
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
@@ -55,6 +75,18 @@ async def process_pdf(file: UploadFile):
 
 @app.post("/remove-irrelevant/")
 async def remove_irrelevant(file: UploadFile):
+    """
+    Remove irrelevant content (headers, footers) from a PDF file.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        
+    Returns:
+        FileResponse: The cleaned PDF file with irrelevant content removed
+        
+    Raises:
+        HTTPException: If processing fails
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
@@ -85,6 +117,20 @@ async def remove_irrelevant(file: UploadFile):
 
 @app.post("/extract-figures/")
 async def extract_figures(file: UploadFile, output_dir: str = None):
+    """
+    Extract figures from a PDF file.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        output_dir (str, optional): Directory to save extracted figures.
+                                  If None, figures are saved in pdf_dir/figures
+        
+    Returns:
+        StreamingResponse: ZIP file containing all extracted figures
+        
+    Raises:
+        HTTPException: If extraction fails or no figures are found
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
@@ -132,6 +178,20 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
 
 @app.post("/extract-tables/")
 async def extract_tables(file: UploadFile, output_dir: str = None):
+    """
+    Extract tables from a PDF file.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        output_dir (str, optional): Directory to save extracted tables.
+                                  If None, tables are saved in pdf_dir/tables
+        
+    Returns:
+        StreamingResponse: ZIP file containing all extracted tables
+        
+    Raises:
+        HTTPException: If extraction fails or no tables are found
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
@@ -180,6 +240,19 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
 
 @app.post("/extract-text/")
 async def extract_text(file: UploadFile):
+    """
+    Extract text content from a PDF file.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        
+    Returns:
+        JSONResponse: Dictionary containing extracted text
+                     {"text": extracted_text}
+        
+    Raises:
+        HTTPException: If extraction fails or no text is found
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
@@ -212,6 +285,22 @@ async def extract_text(file: UploadFile):
 
 @app.post("/extract-markdown/")
 async def extract_markdown(file: UploadFile):
+    """
+    Convert PDF content to markdown format.
+    
+    This endpoint extracts all content (text, figures, tables, formulas)
+    from the PDF and converts it to markdown syntax.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        
+    Returns:
+        JSONResponse: Dictionary containing markdown text
+                     {"markdown": markdown_text}
+        
+    Raises:
+        HTTPException: If conversion fails
+    """
     try:
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
