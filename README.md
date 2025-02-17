@@ -11,7 +11,7 @@ A FastAPI-based service for processing PDF documents, providing comprehensive do
 - **Text Extraction**: Extracts plain text content from PDFs with preserved formatting
 - **Markdown Conversion**: Converts PDF content into markdown format for easy integration with documentation systems
 - **REST API Interface**: Simple HTTP endpoints for processing PDFs
-- **YOLO-based Detection**: Utilizes DocLayout-YOLO model for accurate document layout analysis
+- **YOLO-based Detection**: Utilizes [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) model for accurate document layout analysis
 
 ## Installation
 
