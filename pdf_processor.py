@@ -366,6 +366,149 @@ class PDFProcessor:
             logging.error(f"Error extracting text from PDF: {e}")
             return ""
 
+    def extract_markdown(self, pdf_path: str) -> str:
+        """Extract content from PDF and convert to markdown format."""
+        pdf_path = Path(pdf_path)
+        pdf_name = pdf_path.stem
+        pdf_dir = Path('pdfs') / pdf_name
+        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
+        output_md = pdf_dir / f'{pdf_name}.md'
+        images_dir = pdf_dir / 'md_images'
+        images_dir.mkdir(parents=True, exist_ok=True)
+        
+        if not Path(results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+            processor = PDFLayoutProcessor()
+            _, output_csv = processor.process_pdf(str(pdf_path))
+            results_csv = Path(output_csv)
+
+        try:
+            doc = fitz.open(pdf_path)
+            markdown_content = []
+            
+            # Get PDF dimensions for scaling
+            page = doc[0]
+            pdf_width = page.rect.width
+            pdf_height = page.rect.height
+            
+            # Calculate scaling factors (300 DPI to 72 DPI)
+            scale_x = pdf_width / (pdf_width * 300 / 72)
+            scale_y = pdf_height / (pdf_height * 300 / 72)
+            
+            # Read CSV file and store rows (excluding class 2)
+            with open(results_csv, 'r') as f:
+                csv_reader = csv.DictReader(f)
+                # Filter out class 2 entries
+                rows = [row for row in csv_reader if int(row['class_id']) != 2]
+            
+            # Process each row
+            for i in range(len(rows)):
+                current_row = rows[i]
+                class_id = int(current_row['class_id'])
+                current_page = doc[int(current_row['page_number']) - 1]
+                
+                # Scale coordinates
+                current_rect = fitz.Rect(
+                    float(current_row['x0']) * scale_x,
+                    float(current_row['y0']) * scale_y,
+                    float(current_row['x1']) * scale_x,
+                    float(current_row['y1']) * scale_y
+                )
+                
+                # Handle different content types
+                if class_id == 0:  # Title
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    markdown_content.append(f"# {text}\n\n")
+                    
+                elif class_id == 1:  # Plain text
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    
+                    if i < len(rows) - 1:
+                        next_row = rows[i + 1]
+                        next_page = doc[int(next_row['page_number']) - 1]
+                        next_rect = fitz.Rect(
+                            float(next_row['x0']) * scale_x,
+                            float(next_row['y0']) * scale_y,
+                            float(next_row['x1']) * scale_x,
+                            float(next_row['y1']) * scale_y
+                        )
+                        next_text = next_page.get_text("text", clip=next_rect).encode('utf-8').decode('utf-8')
+                        next_text = " ".join(next_text.split("\n"))
+                        
+                        if int(next_row['class_id']) == 1 and next_text and next_text[0].islower():
+                            markdown_content.append(f"{text} ")
+                        else:
+                            markdown_content.append(f"{text}\n\n")
+                    else:
+                        markdown_content.append(f"{text}\n\n")
+                        
+                elif class_id == 3:  # Figure
+                    # Extract and save figure
+                    pix = current_page.get_pixmap(clip=current_rect)  
+                    img_path = images_dir / f"figure_{i+1}.png"
+                    pix.save(str(img_path))
+                    markdown_content.append(f"![Figure {i+1}]({img_path.relative_to(pdf_dir)})\n\n")
+                    
+                elif class_id == 4:  # Figure caption
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    markdown_content.append(f"__*{text}__*\n\n")
+                    
+                elif class_id == 5:  # Table
+                    # Extract table text and convert to markdown
+                    table_text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    # Simple table conversion (you might want to enhance this)
+                    lines = table_text.split('\n')
+                    if lines:
+                        # Create header separator
+                        header = lines[0].split()
+                        separator = ['---'] * len(header)
+                        
+                        # Format as markdown table
+                        markdown_table = [
+                            '| ' + ' | '.join(header) + ' |',
+                            '| ' + ' | '.join(separator) + ' |'
+                        ]
+                        
+                        # Add remaining rows
+                        for line in lines[1:]:
+                            cells = line.split()
+                            if cells:
+                                markdown_table.append('| ' + ' | '.join(cells) + ' |')
+                        
+                        markdown_content.append('\n'.join(markdown_table) + '\n\n')
+                    
+                elif class_id == 6:  # Table caption
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    markdown_content.append(f"__*{text}__*\n\n")
+                    
+                elif class_id == 7:  # Table footnote
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    markdown_content.append(f"__*{text}__*\n\n")
+                    
+                elif class_id in [8, 9]:  # Formula and formula caption
+                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = " ".join(text.split("\n"))
+                    markdown_content.append(f"```math\n{text}\n```\n\n")
+
+            doc.close()
+            
+            # Join all content and save to file
+            final_markdown = "".join(markdown_content)
+            with open(output_md, 'w', encoding='utf-8') as f:
+                f.write(final_markdown)
+            
+            logging.info(f"Markdown content saved to: {output_md}")
+            return final_markdown
+
+        except Exception as e:
+            logging.error(f"Error extracting markdown from PDF: {e}")
+            return ""
+
 
 # def main():
 #     # Configuration

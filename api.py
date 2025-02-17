@@ -210,5 +210,37 @@ async def extract_text(file: UploadFile):
         logger.error(f"Error extracting text: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/extract-markdown/")
+async def extract_markdown(file: UploadFile):
+    try:
+        # Create a unique directory for this PDF
+        pdf_dir = UPLOADS_DIR / Path(file.filename).stem
+        pdf_dir.mkdir(exist_ok=True)
+        
+        # Save uploaded file
+        file_path = pdf_dir / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Create PDFProcessor instance
+        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        
+        # Process markdown
+        markdown_text = processor.extract_markdown(file_path)
+        
+        if not markdown_text:
+            return JSONResponse(
+                status_code=404,
+                content={"message": "Could not convert PDF to markdown"}
+            )
+        
+        return JSONResponse(
+            content={"markdown": markdown_text}
+        )
+    
+    except Exception as e:
+        logger.error(f"Error converting to markdown: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
