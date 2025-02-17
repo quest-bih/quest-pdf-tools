@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from PIL import Image
 from doc_layout import PDFLayoutProcessor
-
+from utils import *
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -406,7 +406,9 @@ class PDFProcessor:
                 )
                 
                 current_text = current_page.get_text("text", clip=current_rect)
-                current_text = " ".join(current_text.split("\n"))
+                current_links = extract_links(current_page.get_links())
+                # current_text = " ".join(current_text.split("\n"))
+                current_text = process_page_text(current_text, current_links)
                 
                 if not current_text:  # Skip empty text blocks
                     continue
@@ -439,7 +441,7 @@ class PDFProcessor:
                         extracted_text.append(current_text + "\n\n")
                 else:
                     # Last row, just append the text
-                    extracted_text.append(current_text)
+                    extracted_text.append(current_text)          
 
             doc.close()
             
