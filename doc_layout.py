@@ -57,7 +57,28 @@ class PDFLayoutProcessor:
         """
         self.model_dir = Path("./models")
         self.model_path = self.model_dir / model_filename
+        self.device = self._get_device()
         self.model = self._load_model(model_repo, model_filename)
+
+    def _get_device(self) -> str:
+        """
+        Determine the best available device for model inference.
+        
+        Returns:
+            str: 'mps' for Apple Silicon, 'cuda' for NVIDIA GPU, or 'cpu' as fallback
+        """
+        try:
+            import torch
+            if torch.backends.mps.is_available():
+                logger.info("Using MPS device")
+                return "mps"
+            elif torch.cuda.is_available():
+                logger.info("Using CUDA device")
+                return "cuda"
+        except:
+            pass
+        logger.info("Using CPU device")
+        return "cpu"
 
     def _load_model(self, model_repo: str, model_filename: str) -> YOLOv10:
         """
@@ -411,7 +432,7 @@ class PDFLayoutProcessor:
                     str(temp_image_path),
                     imgsz=1024,
                     conf=0.2,
-                    device="mps"
+                    device=self.device
                 )
 
                 # Process detections
