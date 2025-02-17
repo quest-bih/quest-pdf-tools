@@ -157,6 +157,16 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
      -F "file=@your_document.pdf"
 ```
 
+## TODO 
+
+- [ ] Revamp markdown content generation system
+- [ ] Enhance document layout sequencing logic
+- [ ] Upgrade text processing capabilities
+  - [ ] Incorporate efficient OCR model
+  - [ ] Optimize text content extraction
+- [ ] Create intuitive Gradio web interface
+- [ ] Enable batch PDF document processing
+
 ## Dependencies
 
 - [FastAPI](https://github.com/fastapi/fastapi) - Modern, fast web framework for building APIs with Python
