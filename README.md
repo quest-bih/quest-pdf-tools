@@ -13,6 +13,22 @@ A FastAPI-based service for processing PDF documents, providing comprehensive do
 - **REST API Interface**: Simple HTTP endpoints for processing PDFs
 - **YOLO-based Detection**: Utilizes [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) model for accurate document layout analysis
 
+## 🚧 Work in Progress
+
+This is an ongoing project, and some features are still under active development. The current implementation:
+
+- Works exclusively with scientific PDF documents
+- Uses layout analysis optimized for academic papers
+- Will improve over time through:
+  - Manual refinements of the algorithms
+  - Integration of more capable machine learning models
+
+## ⚠️ Known Limitations
+
+- The layout ordering algorithm is specifically designed for scientific papers and may not work correctly with other types of PDFs
+- Markdown conversion for tables is still under development and may produce malformed output in some cases
+- The accuracy of element detection and classification will improve as the models are refined
+
 ## Installation and Usage
 
 You can use Quest PDF Tools either directly on your system or via Docker.
