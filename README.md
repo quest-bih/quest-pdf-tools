@@ -13,7 +13,11 @@ A FastAPI-based service for processing PDF documents, providing comprehensive do
 - **REST API Interface**: Simple HTTP endpoints for processing PDFs
 - **YOLO-based Detection**: Utilizes [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) model for accurate document layout analysis
 
-## Installation
+## Installation and Usage
+
+You can use Quest PDF Tools either directly on your system or via Docker.
+
+### Direct Installation
 
 1. Clone the repository:
 ```bash
@@ -31,6 +35,19 @@ pip install -r requirements.txt
 Start the API server:
 ```bash
 python api.py
+```
+The server will start on `http://0.0.0.0:8000`
+
+## Docker Installation & Usage
+
+1. Build the Docker image:
+```bash
+docker build -t quest-pdf-tools .
+```
+
+2. Run the container:
+```bash
+docker run -p 8000:8000 quest-pdf-tools
 ```
 
 The server will start on `http://0.0.0.0:8000`
