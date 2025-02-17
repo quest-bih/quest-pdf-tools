@@ -159,13 +159,13 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
 
 ## Dependencies
 
-- FastAPI
-- PyMuPDF
-- DocLayout-YOLO
-- Torch
-- Uvicorn
+- [FastAPI](https://github.com/fastapi/fastapi) - Modern, fast web framework for building APIs with Python
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - Python bindings for the MuPDF PDF library
+- [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) - YOLO-based document layout analysis model
+- [PyTorch](https://pytorch.org/) - Open source machine learning framework
+- [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server implementation
 - Other dependencies listed in `requirements.txt`
 
 ## License
 
-This project is licensed under the terms of the LICENSE file included in the repository.
+This project is licensed under the terms of the [LICENSE](LICENSE) file included in the repository.

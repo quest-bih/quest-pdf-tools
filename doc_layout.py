@@ -19,15 +19,57 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+"""
+PDF Layout Processing Module
+
+This module provides functionality for analyzing and processing PDF document layouts using YOLO-based detection.
+It can identify and classify different document elements such as titles, text blocks, figures, tables, and formulas.
+
+The module uses a pre-trained YOLO model to detect and classify document elements, and provides
+capabilities for handling different page layouts (single column, two columns, three columns, or irregular layouts).
+"""
+
 class PDFLayoutProcessor:
+    """
+    A class for processing PDF layouts and detecting document elements using YOLO.
+    
+    This class handles:
+    - Loading and managing the YOLO model
+    - Processing PDF documents to detect layout elements
+    - Handling different page layouts (1-3 columns or irregular)
+    - Drawing annotations on the PDF
+    - Saving detection results
+    
+    Attributes:
+        model_dir (Path): Directory for storing the YOLO model
+        model_path (Path): Path to the YOLO model file
+        model (YOLOv10): Loaded YOLO model instance
+    """
+
     def __init__(self, model_repo: str = "juliozhao/DocLayout-YOLO-DocStructBench",
                  model_filename: str = "doclayout_yolo_docstructbench_imgsz1024.pt"):
+        """
+        Initialize the PDF Layout Processor.
+        
+        Args:
+            model_repo (str): HuggingFace repository containing the YOLO model
+            model_filename (str): Name of the model file to download/use
+        """
         self.model_dir = Path("./models")
         self.model_path = self.model_dir / model_filename
         self.model = self._load_model(model_repo, model_filename)
 
     def _load_model(self, model_repo: str, model_filename: str) -> YOLOv10:
-        """Load or download the YOLO model."""
+        """
+        Load or download the YOLO model from HuggingFace.
+        
+        Args:
+            model_repo (str): HuggingFace repository ID
+            model_filename (str): Name of the model file
+            
+        Returns:
+            YOLOv10: Loaded YOLO model instance
+        """
         self.model_dir.mkdir(parents=True, exist_ok=True)
         if not self.model_path.exists():
             logger.info(f"Downloading model from {model_repo}/{model_filename}")
@@ -37,7 +79,15 @@ class PDFLayoutProcessor:
         return YOLOv10(str(self.model_path))
 
     def _get_pdf_dimensions(self, pdf_path: Path) -> tuple:
-        """Get PDF dimensions from the first page."""
+        """
+        Get dimensions of the first page of a PDF at 300 DPI.
+        
+        Args:
+            pdf_path (Path): Path to the PDF file
+            
+        Returns:
+            tuple: (width, height) in pixels at 300 DPI
+        """
         with fitz.open(pdf_path) as pdf_document:
             first_page = pdf_document[0]
             width = int(first_page.rect.width * 300 / 72)  # Convert to pixels at 300 DPI
@@ -46,7 +96,16 @@ class PDFLayoutProcessor:
         return width, height
 
     def _process_detection_results(self, det_res, page_num: int) -> List[Dict[str, Any]]:
-        """Process detection results into structured format."""
+        """
+        Process YOLO detection results into a structured format.
+        
+        Args:
+            det_res: Raw detection results from YOLO model
+            page_num (int): Current page number (1-based)
+            
+        Returns:
+            List[Dict[str, Any]]: List of processed detections with class_id, confidence, and coordinates
+        """
         detections = []
         for box in det_res[0].boxes:
             detection = {
@@ -59,7 +118,12 @@ class PDFLayoutProcessor:
         return detections
 
     def _cleanup_temp_dir(self, temp_dir: Path) -> None:
-        """Safely remove temporary directory and all its contents."""
+        """
+        Safely remove temporary directory and all its contents.
+        
+        Args:
+            temp_dir (Path): Path to temporary directory to clean up
+        """
         try:
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
@@ -68,7 +132,13 @@ class PDFLayoutProcessor:
             logger.warning(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
     def _save_detection_results(self, pages_data: Dict[str, List[Dict]], output_path: Path) -> None:
-        """Save detection results to a CSV file."""
+        """
+        Save detection results to a CSV file.
+        
+        Args:
+            pages_data (Dict[str, List[Dict]]): Detection results organized by page
+            output_path (Path): Path where CSV file will be saved
+        """
         output_path = output_path.with_suffix('.csv')
         
         with open(output_path, 'w', newline='') as f:
@@ -95,7 +165,18 @@ class PDFLayoutProcessor:
 
 
     def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Reorder detections based on column layout or section-by-section analysis."""
+        """
+        Reorder detected elements based on page layout analysis.
+        
+        Analyzes the layout to determine column structure and orders elements
+        according to reading order (top-to-bottom, left-to-right).
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of detected elements
+            
+        Returns:
+            List[Dict[str, Any]]: Reordered elements following natural reading order
+        """
         if not elements:
             return elements
         
@@ -123,7 +204,16 @@ class PDFLayoutProcessor:
             return self._process_irregular_layout(elements, page_height)
 
     def _detect_columns(self, boxes: np.ndarray, page_width: float) -> int:
-        """Detect the number of columns based on horizontal distribution."""
+        """
+        Detect the number of columns in the layout using histogram analysis.
+        
+        Args:
+            boxes (np.ndarray): Array of bounding boxes
+            page_width (float): Width of the page
+            
+        Returns:
+            int: Number of columns detected (1, 2, or 3)
+        """
         x_coords = boxes[:, 0]  # Extract x-coordinates of bounding boxes
         histogram, bin_edges = np.histogram(x_coords, bins=20, range=(0, page_width))
         
@@ -141,11 +231,28 @@ class PDFLayoutProcessor:
             return 1  # Default to single column if unsure
 
     def _sort_single_column(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Sort elements in a single column from top to bottom."""
+        """
+        Sort elements in a single column layout from top to bottom.
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of elements to sort
+            
+        Returns:
+            List[Dict[str, Any]]: Sorted elements
+        """
         return sorted(elements, key=lambda elem: elem['coordinates'][1])
 
     def _sort_two_columns(self, elements: List[Dict[str, Any]], middle_line: float) -> List[Dict[str, Any]]:
-        """Sort elements in two columns from top to bottom."""
+        """
+        Sort elements in a two-column layout.
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of elements to sort
+            middle_line (float): X-coordinate separating the two columns
+            
+        Returns:
+            List[Dict[str, Any]]: Sorted elements (left column followed by right column)
+        """
         left_column = []
         right_column = []
         
@@ -164,7 +271,17 @@ class PDFLayoutProcessor:
         return left_column + right_column
 
     def _sort_three_columns(self, elements: List[Dict[str, Any]], left_line: float, right_line: float) -> List[Dict[str, Any]]:
-        """Sort elements in three columns from top to bottom."""
+        """
+        Sort elements in a three-column layout.
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of elements to sort
+            left_line (float): X-coordinate separating left and middle columns
+            right_line (float): X-coordinate separating middle and right columns
+            
+        Returns:
+            List[Dict[str, Any]]: Sorted elements (left, middle, then right columns)
+        """
         left_column = []
         middle_column = []
         right_column = []
@@ -187,7 +304,16 @@ class PDFLayoutProcessor:
         return left_column + middle_column + right_column
 
     def _process_irregular_layout(self, elements: List[Dict[str, Any]], page_height: float) -> List[Dict[str, Any]]:
-        """Process elements section by section for irregular layouts."""
+        """
+        Process elements in an irregular layout by analyzing sections.
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of elements to process
+            page_height (float): Height of the page
+            
+        Returns:
+            List[Dict[str, Any]]: Processed and ordered elements
+        """
         sections = []
         current_section = []
         previous_y = -np.inf
@@ -215,7 +341,24 @@ class PDFLayoutProcessor:
         return reordered_elements
     
     def process_pdf(self, pdf_path: str) -> tuple:
-        """Process PDF and return paths to output files."""
+        """
+        Process a PDF file to detect and analyze its layout.
+        
+        This method:
+        1. Converts PDF pages to images
+        2. Runs YOLO detection on each page
+        3. Analyzes and orders detected elements
+        4. Draws annotations on the PDF
+        5. Saves detection results
+        
+        Args:
+            pdf_path (str): Path to the input PDF file
+            
+        Returns:
+            tuple: (output_pdf_path, results_path)
+                - output_pdf_path: Path to annotated PDF
+                - results_path: Path to CSV file with detection results
+        """
         pdf_path = Path(pdf_path)
         pdf_name = pdf_path.stem
         
