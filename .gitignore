@@ -175,3 +175,6 @@ cython_debug/
 *.png
 *.txt
 *.md
+*.zip
+
+.gradio/

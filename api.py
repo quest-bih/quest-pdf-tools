@@ -118,18 +118,26 @@ async def remove_irrelevant(file: UploadFile):
 @app.post("/extract-figures/")
 async def extract_figures(file: UploadFile, output_dir: str = None):
     """
-    Extract figures from a PDF file.
+    Extract figures from a PDF file and save them as individual image files.
+    
+    This endpoint processes a PDF file to identify and extract any figures/images
+    present in the document. The extracted figures are saved as separate files
+    and bundled into a ZIP archive for download.
     
     Args:
-        file (UploadFile): The uploaded PDF file to process
-        output_dir (str, optional): Directory to save extracted figures.
-                                  If None, figures are saved in pdf_dir/figures
+        file (UploadFile): The PDF file to extract figures from. Must be a valid PDF document.
+        output_dir (str, optional): Custom directory path where extracted figures should be saved.
+                                  If not provided, figures are saved in a 'figures' subdirectory
+                                  within the PDF processing directory.
         
     Returns:
-        StreamingResponse: ZIP file containing all extracted figures
+        FileResponse: A ZIP archive containing all extracted figures as separate image files.
+                     The response includes appropriate headers for file download.
+        JSONResponse: A 404 status with message if no figures are found.
         
     Raises:
-        HTTPException: If extraction fails or no figures are found
+        HTTPException (404): If no figures are found in the PDF document.
+        HTTPException (500): If figure extraction fails due to processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -146,7 +154,7 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
             output_dir = str(pdf_dir) + "/figures"
 
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        processor = PDFProcessor(file_path, "", "")
         
         # Extract figures
         extracted_figures = processor.extract_figures(file_path, output_dir)
@@ -156,20 +164,18 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
                 status_code=404,
                 content={"message": "No figures found in the PDF"}
             )
-        # Create a ZIP file containing all extracted figures
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+
+        # Create ZIP file in the PDF directory
+        zip_path = pdf_dir / f"{Path(file_path).stem}_figures.zip"
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for figure_path in extracted_figures:
-                zip_file.write(figure_path, Path(figure_path).name)  # Use just the filename
+                zip_file.write(figure_path, Path(figure_path).name)
         
-        zip_buffer.seek(0)
         logging.info(f"Figures extracted and saved to {output_dir}")
-        return StreamingResponse(
-            io.BytesIO(zip_buffer.getvalue()),
+        return FileResponse(
+            zip_path,
             media_type="application/zip",
-            headers={
-                "Content-Disposition": f"attachment; filename={Path(file_path).stem}_figures.zip"
-            }
+            filename=zip_path.name
         )
     
     except Exception as e:
@@ -179,18 +185,24 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
 @app.post("/extract-tables/")
 async def extract_tables(file: UploadFile, output_dir: str = None):
     """
-    Extract tables from a PDF file.
+    Extract tables from a PDF file and return them as a ZIP archive.
+    
+    This endpoint processes a PDF file to identify and extract any tables present in the document.
+    The extracted tables are saved as individual files and bundled into a ZIP archive for download.
     
     Args:
-        file (UploadFile): The uploaded PDF file to process
-        output_dir (str, optional): Directory to save extracted tables.
-                                  If None, tables are saved in pdf_dir/tables
+        file (UploadFile): The PDF file to extract tables from. Must be a valid PDF document.
+        output_dir (str, optional): Custom directory path where extracted tables should be saved.
+                                  If not provided, tables are saved in a 'tables' subdirectory
+                                  within the PDF processing directory.
         
     Returns:
-        StreamingResponse: ZIP file containing all extracted tables
+        FileResponse: A ZIP archive containing all extracted tables as separate files.
+                     The response includes appropriate headers for file download.
         
     Raises:
-        HTTPException: If extraction fails or no tables are found
+        HTTPException (404): If no tables are found in the PDF document.
+        HTTPException (500): If table extraction fails due to processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -207,7 +219,7 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
             output_dir = str(pdf_dir) + "/tables"
 
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        processor = PDFProcessor(file_path, "", "")
         
         # Extract tables
         extracted_tables = processor.extract_tables(file_path, output_dir)
@@ -218,20 +230,17 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
                 content={"message": "No tables found in the PDF"}
             )
 
-        # Create a ZIP file containing all extracted tables
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Create ZIP file in the PDF directory
+        zip_path = pdf_dir / f"{Path(file_path).stem}_tables.zip"
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for table_path in extracted_tables:
-                zip_file.write(table_path, Path(table_path).name)  # Use just the filename
+                zip_file.write(table_path, Path(table_path).name)
         
-        zip_buffer.seek(0)
         logging.info(f"Tables extracted and saved to {output_dir}")
-        return StreamingResponse(
-            io.BytesIO(zip_buffer.getvalue()),
+        return FileResponse(
+            zip_path,
             media_type="application/zip",
-            headers={
-                "Content-Disposition": f"attachment; filename={Path(file_path).stem}_tables.zip"
-            }
+            filename=zip_path.name
         )
     
     except Exception as e:
