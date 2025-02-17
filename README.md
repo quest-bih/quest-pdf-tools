@@ -1,5 +1,4 @@
 # Quest PDF Tools
-[![Stars](https://img.shields.io/github/stars/quest-bih/quest-pdf-tools.svg)](https://github.com/quest-bih/quest-pdf-tools) [![Forks](https://img.shields.io/github/forks/quest-bih/quest-pdf-tools.svg)](https://github.com/quest-bih/quest-pdf-tools) [![Closed Issues](https://img.shields.io/github/issues-closed-raw/quest-bih/quest-pdf-tools)](https://github.com/quest-bih/quest-pdf-tools/issues)
 
 A FastAPI-based service for processing PDF documents, providing comprehensive document analysis and content extraction capabilities.
 
