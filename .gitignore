@@ -179,3 +179,4 @@ cython_debug/
 
 .gradio/
 !examples/**/*
+!logo.png

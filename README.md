@@ -1,4 +1,4 @@
-# Quest PDF Tools
+![Quest PDF Tools Logo](logo.png)
 
 A FastAPI-based web application and API service for processing PDF documents, providing comprehensive document analysis and content extraction capabilities. The service can be deployed either as a full web application with an intuitive interface or as a standalone API.
 
