@@ -128,7 +128,7 @@ def process_page_text(text,links):
 
     Args:
         text (str): The text to process
-        page: The page object containing links
+        links: links within the page
 
     Returns:
         str: The processed text with cleaned content and replaced links

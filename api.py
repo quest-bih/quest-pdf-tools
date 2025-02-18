@@ -8,6 +8,8 @@ import shutil
 import logging
 from doc_layout import PDFLayoutProcessor
 from pdf_processor import PDFProcessor
+from dotenv import load_dotenv
+import os
 
 """
 FastAPI application for PDF processing and content extraction.
@@ -341,4 +343,11 @@ async def extract_markdown(file: UploadFile):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Get port from environment variables, default to 8000 if not set
+    port = int(os.getenv('FAST_API_PORT', 8000))
+    
+    uvicorn.run(app, host="0.0.0.0", port=port)

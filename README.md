@@ -1,6 +1,6 @@
 # Quest PDF Tools
 
-A FastAPI-based service for processing PDF documents, providing comprehensive document analysis and content extraction capabilities.
+A FastAPI-based web application and API service for processing PDF documents, providing comprehensive document analysis and content extraction capabilities. The service can be deployed either as a full web application with an intuitive interface or as a standalone API.
 
 ## Features
 
@@ -28,6 +28,7 @@ This is an ongoing project, and some features are still under active development
 - The layout ordering algorithm is specifically designed for scientific papers and may not work correctly with other types of PDFs
 - Markdown conversion for tables is still under development and may produce malformed output in some cases
 - The accuracy of element detection and classification will improve as the models are refined
+- The backend may take a few seconds to fully deploy and become responsive to requests
 
 ## Installation and Usage
 
@@ -46,13 +47,29 @@ cd quest-pdf-tools
 pip install -r requirements.txt
 ```
 
+3. Configure environment variables:
+Create a .env file in the root directory with the following content
+```bash
+GRADIO_PORT = XXXX # Gradio web interface port defaults to 7860
+FAST_API_PORT = XXXX # FastAPI backend port defaults to 8000
+DEPLOY_MODE = "full" # Deploy mode can be "full" or "backend" : "full" for an additional deployement of frontend, "backend" for backend only
+```
+
 ## Usage
 
-Start the API server:
+Start the application in one of two modes:
+
+1. Full mode (includes frontend and backend):
 ```bash
-python api.py
+python run.py --mode full
 ```
-The server will start on `http://0.0.0.0:8000`
+The frontend will be available at  `127.0.0.1:<GRADIO_PORT>` while the backend will be available at `127.0.0.1:<FAST_API_PORT>`
+
+2. Backend mode (only backend):
+```bash
+python run.py --mode backend
+```
+The backend will be available at `127.0.0.1:<FAST_API_PORT>`
 
 ## Docker Installation & Usage
 
@@ -63,10 +80,10 @@ docker build -t quest-pdf-tools .
 
 2. Run the container:
 ```bash
-docker run -p 8000:8000 quest-pdf-tools
+docker run -p <GRADIO_PORT>:<GRADIO_PORT> -p <FAST_API_PORT>:<FAST_API_PORT> quest-pdf-tools
 ```
 
-The server will start on `http://0.0.0.0:8000`
+Depending on your deploy mode configuration, the frontend will be available at `127.0.0.1:<GRADIO_PORT>` while the backend will be available at `127.0.0.1:<FAST_API_PORT>`
 
 ## API Endpoints
 
@@ -164,8 +181,12 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
 - [ ] Upgrade text processing capabilities
   - [ ] Incorporate efficient OCR model
   - [ ] Optimize text content extraction
-- [ ] Create intuitive Gradio web interface
 - [ ] Enable batch PDF document processing
+- [x] Create intuitive Gradio web interface
+- [ ] Improve the frontend interface
+  - [ ] Add support for multiple PDF uploads
+  - [ ] Improve user feedback and error handling
+
 
 ## Dependencies
 
@@ -174,7 +195,27 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
 - [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) - YOLO-based document layout analysis model
 - [PyTorch](https://pytorch.org/) - Open source machine learning framework
 - [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server implementation
+- [Gradio](https://gradio.app/) - Create UIs for machine learning models and data science workflows
 - Other dependencies listed in `requirements.txt`
+
+## Project Structure
+
+```plaintext
+quest-pdf-tools/
+├── api.py                 # FastAPI endpoints and API configuration
+├── app.py                # Gradio web interface implementation
+├── doc_layout.py         # Document layout analysis implementation
+├── pdf_processor.py      # Core PDF processing functionality
+├── utils.py             # Utility functions and helper methods
+├── run.py               # Main application entry point
+├── models/              # Pre-trained model files
+│   └── ...
+├── pdfs/               # Directory for temporary PDF storage
+│   └── ...
+├── requirements.txt    # Python dependencies
+├── .env               # Environment configuration
+└── Dockerfile         # Container configuration
+```
 
 ## License
 

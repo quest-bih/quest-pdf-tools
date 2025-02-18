@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy environment and requirements files
+COPY .env requirements.txt ./
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
@@ -22,8 +23,14 @@ COPY . .
 # Create directories for models and uploads
 RUN mkdir -p models uploads
 
-# Expose port for FastAPI
-EXPOSE 8000
+# Load ports from .env file and expose them
+ARG FASTAPI_PORT
+ARG GRADIO_PORT
+ARG DEPLOY_MODE
+ENV FASTAPI_PORT=${FASTAPI_PORT:-8000}
+ENV GRADIO_PORT=${GRADIO_PORT:-7860}
+ENV DEPLOY_MODE=${DEPLOY_MODE:-"full"}
+EXPOSE $FASTAPI_PORT $GRADIO_PORT
 
-# Command to run the FastAPI application
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use run.py as the entrypoint with shell form for variable interpolation
+CMD python run.py --mode $DEPLOY_MODE
