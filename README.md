@@ -187,16 +187,16 @@ Below are examples demonstrating the various processing capabilities of Quest PD
 
 | Processing Type | Description | Example Output |
 |----------------|-------------|----------------|
-| Original Document | Example scientific paper used for demonstration | ![Example PDF document](examples/10.1002mrd.23132/10.1002mrd.23132.pdf) |
-| Layout Analysis | Document elements highlighted with different colors | ![Processed PDF Layout](examples/10.1002mrd.23132/10.1002mrd.23132_processed.pdf) |
-| Cleaned Document | Version with headers, footers, and irrelevant content removed | ![Removed Irrelevant Content](examples/10.1002mrd.23132/10.1002mrd.23132_cleaned.pdf) |
-| Figure Extraction | Automatically identified and extracted figures | ![Extracted Figures](examples/10.1002mrd.23132/figures/) |
-| Figure Package | Downloadable ZIP file containing all figures | ![Zipped Figures](examples/10.1002mrd.23132/figures/10.1002mrd.23132_figures.zip) |
-| Table Extraction | Identified tables with maintained structure | ![Extracted Tables](examples/10.1002mrd.23132/tables/) |
-| Table Package | Consolidated ZIP file of all tables | ![Zipped Tables](examples/10.1002mrd.23132/tables/10.1002mrd.23132_tables.zip) |
-| Text Content | Extracted plain text with preserved formatting | ![Extracted Text](examples/10.1002mrd.23132/10.1002mrd.23132.txt) |
-| Markdown Output | PDF content converted to markdown format | ![Extracted Markdown](examples/10.1002mrd.23132/10.1002mrd.23132.md) |
-| Supporting Images | Organized folder for markdown conversion images | ![Supporting Markdown](examples/10.1002mrd.23132/md_images/) |
+| Original Document | Example scientific paper used for demonstration | [Example PDF document](examples/10.1002mrd.23132/10.1002mrd.23132.pdf) |
+| Layout Analysis | Document elements highlighted with different colors | [Processed PDF Layout](examples/10.1002mrd.23132/10.1002mrd.23132_processed.pdf) |
+| Cleaned Document | Headers, footers, and irrelevant content removed | [Cleaned PDF](examples/10.1002mrd.23132/10.1002mrd.23132_cleaned.pdf) |
+| Figure Extraction | Automatically identified and extracted figures | [Extracted Figures](examples/10.1002mrd.23132/figures/) |
+| Figure Package | Downloadable ZIP file containing all figures | [Zipped Figures](examples/10.1002mrd.23132/figures/10.1002mrd.23132_figures.zip) |
+| Table Extraction | Identified tables with maintained structure | [Extracted Tables](examples/10.1002mrd.23132/tables/) |
+| Table Package | Consolidated ZIP file of all tables | [Zipped Tables](examples/10.1002mrd.23132/tables/10.1002mrd.23132_tables.zip) |
+| Text Content | Extracted plain text with preserved formatting | [Extracted Text](examples/10.1002mrd.23132/10.1002mrd.23132.txt) |
+| Markdown Output | PDF content converted to markdown format | [Extracted Markdown](examples/10.1002mrd.23132/10.1002mrd.23132.md) |
+| Supporting Images | Organized folder for markdown conversion images | [Supporting Markdown](examples/10.1002mrd.23132/md_images/) |
 
 
 ## TODO 
