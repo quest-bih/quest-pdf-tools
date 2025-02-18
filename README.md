@@ -137,7 +137,7 @@ curl -X POST "http://localhost:8000/extract-figures/" \
 
 ### 4. Extract Tables
 
-Endpoint : `POST /extract-tables/`
+**Endpoint** : `POST /extract-tables/`
 
 Extracts all tables from the PDF and returns them as a ZIP file.
 
@@ -150,7 +150,7 @@ curl -X POST "http://localhost:8000/extract-tables/" \
 
 ### 5. Extract Text
 
-Endpoint : `POST /extract-text/`
+**Endpoint** : `POST /extract-text/`
 
 Extracts all text content from the PDF and returns it as JSON.
 
@@ -163,7 +163,7 @@ curl -X POST "http://localhost:8000/extract-text/" \
 
 ### 6. Extract Markdown
 
-Endpoint : `POST /extract-markdown/`
+**Endpoint** : `POST /extract-markdown/`
 
 Converts the PDF content to markdown format and returns it as JSON.
 
@@ -216,6 +216,29 @@ quest-pdf-tools/
 ├── .env               # Environment configuration
 └── Dockerfile         # Container configuration
 ```
+
+## Contributing
+
+We welcome contributions to Quest PDF Tools! Here's how you can help:
+
+### Opening Issues
+- Report bugs by creating an issue with a clear description and steps to reproduce
+- Suggest new features or improvements
+- Ask questions about the project
+
+### Pull Requests
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/improvement`)
+3. Make your changes
+4. Commit your changes (`git commit -am 'Add new feature'`)
+5. Push to the branch (`git push origin feature/improvement`)
+6. Create a Pull Request
+
+Please ensure your PR:
+- Clearly describes the changes and their purpose
+- Includes any necessary documentation updates
+- Follows the existing code style
+
 
 ## License
 
