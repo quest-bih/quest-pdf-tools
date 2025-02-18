@@ -178,3 +178,4 @@ cython_debug/
 *.zip
 
 .gradio/
+!examples/**/*

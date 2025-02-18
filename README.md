@@ -174,6 +174,56 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
      -F "file=@your_document.pdf"
 ```
 
+## Examples
+
+### Frontend Interface
+
+The web interface provides an intuitive way to interact with the PDF processing tools. The interface features a clean, user-friendly design with drag-and-drop file upload capabilities and clear processing options.
+
+![Frontend Interface](examples/front_end.png)
+
+### Example Processing Results
+
+Below are examples demonstrating the various processing capabilities of Quest PDF Tools using a sample scientific paper.
+
+#### Original Document
+The following shows an example scientific paper used to demonstrate the tool's capabilities:
+![Example PDF document](examples/10.1002mrd.23132/10.1002mrd.23132.pdf)
+
+#### Layout Analysis Results
+After processing, the document elements are highlighted with different colors for easy identification:
+![Process PDF Layout](examples/10.1002mrd.23132/10.1002mrd.23132_processed.pdf)
+
+#### Cleaned Document
+The cleaned version with headers, footers, and other irrelevant content removed:
+![Remove Irrelevant Content](examples/10.1002mrd.23132/10.1002mrd.23132_cleaned.pdf)
+
+#### Figure Extraction
+The system automatically identifies and extracts figures from the document:
+![Extract Figures](examples/10.1002mrd.23132/figures/)
+
+All extracted figures are conveniently packaged in a downloadable ZIP file:
+![Extract Figures](examples/10.1002mrd.23132/figures/10.1002mrd.23132_figures.zip)
+
+#### Table Extraction
+Tables are identified and extracted while maintaining their structure:
+![Extract Tables](examples/10.1002mrd.23132/tables/)
+
+Tables are also provided in a consolidated ZIP file for easy download:
+![Extract Tables](examples/10.1002mrd.23132/tables/10.1002mrd.23132_tables.zip)
+
+#### Text Content
+The extracted plain text maintains proper formatting and structure:
+![Extract Text](examples/10.1002mrd.23132/10.1002mrd.23132.txt)
+
+#### Markdown Output
+The PDF content is converted to markdown format for easy integration with documentation systems:
+![Extract Markdown](examples/10.1002mrd.23132/10.1002mrd.23132.md)
+
+Supporting images for the markdown conversion are organized in a dedicated folder:
+![Extract Markdown](examples/10.1002mrd.23132/md_images/)
+
+
 ## TODO 
 
 - [ ] Revamp markdown content generation system
