@@ -1,4 +1,5 @@
 ![Quest PDF Tools Logo](logo.png)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0) [![GitHub stars](https://img.shields.io/github/stars/quest-bih/quest-pdf-tools.svg?style=social&label=Star&maxAge=2592000)](https://github.com/quest-bih/quest-pdf-tools/stargazers) [![GitHub issues](https://img.shields.io/github/issues/quest-bih/quest-pdf-tools.svg)](https://github.com/quest-bih/quest-pdf-tools/issues) [![GitHub closed issues](https://img.shields.io/github/issues-closed/quest-bih/quest-pdf-tools.svg)](https://github.com/quest-bih/quest-pdf-tools/issues?q=is%3Aissue+is%3Aclosed)
 
 A FastAPI-based web application and API service for processing PDF documents, providing comprehensive document analysis and content extraction capabilities. The service can be deployed either as a full web application with an intuitive interface or as a standalone API.
 

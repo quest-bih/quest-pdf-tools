@@ -180,3 +180,4 @@ cython_debug/
 .gradio/
 !examples/**/*
 !logo.png
+!CODE_OF_CONDUCT.md
