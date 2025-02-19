@@ -390,7 +390,7 @@ class PDFProcessor:
             # Read CSV file and store rows (only class 0 and 1)
             with open(results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
-                rows = [row for row in csv_reader if int(row['class_id']) in [0, 1]]
+                rows = [row for row in csv_reader if int(row['class_id']) in [0, 1] and float(row['confidence']) > 0.5]
             
             # Process each row
             for i in range(len(rows)):
@@ -427,7 +427,9 @@ class PDFProcessor:
                     )
                     
                     next_text = next_page.get_text("text", clip=next_rect)
-                    next_text = " ".join(next_text.split("\n"))
+                    # next_text = " ".join(next_text.split("\n"))
+                    next_links = extract_links(next_page.get_links())
+                    next_text = process_page_text(next_text, next_links)
                     
                     # Check if current and next elements are from the same class
                     if current_row['class_id'] == next_row['class_id']:

@@ -181,3 +181,4 @@ cython_debug/
 !examples/**/*
 !logo.png
 !CODE_OF_CONDUCT.md
+.DS_Store

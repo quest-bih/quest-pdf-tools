@@ -46,6 +46,8 @@ class PDFLayoutProcessor:
         model (YOLOv10): Loaded YOLO model instance
     """
 
+    _model_instance = None  # Class variable to store the singleton model instance
+    
     def __init__(self, model_repo: str = "juliozhao/DocLayout-YOLO-DocStructBench",
                  model_filename: str = "doclayout_yolo_docstructbench_imgsz1024.pt"):
         """
@@ -58,7 +60,11 @@ class PDFLayoutProcessor:
         self.model_dir = Path("./models")
         self.model_path = self.model_dir / model_filename
         self.device = self._get_device()
-        self.model = self._load_model(model_repo, model_filename)
+        
+        # Use the class's model instance if it exists, otherwise create it
+        if PDFLayoutProcessor._model_instance is None:
+            PDFLayoutProcessor._model_instance = self._load_model(model_repo, model_filename)
+        self.model = PDFLayoutProcessor._model_instance
 
     def _get_device(self) -> str:
         """
@@ -97,7 +103,7 @@ class PDFLayoutProcessor:
             hf_hub_download(repo_id=model_repo, filename=model_filename, local_dir=self.model_dir)
         else:
             logger.info(f"Loading existing model from {self.model_path}")
-        return YOLOv10(str(self.model_path))
+        return YOLOv10(str(self.model_path), verbose=True)
 
     def _get_pdf_dimensions(self, pdf_path: Path) -> tuple:
         """
@@ -185,6 +191,43 @@ class PDFLayoutProcessor:
         logger.info(f"Saved detection results to {output_path}")
 
 
+    def _filter_overlapping_elements(self, elements: List[Dict[str, Any]], threshold: float = 5.0) -> List[Dict[str, Any]]:
+        """
+        Filter out overlapping elements with lower confidence scores.
+        
+        Args:
+            elements (List[Dict[str, Any]]): List of detected elements
+            threshold (float): Maximum allowed difference in coordinates (in degrees)
+            
+        Returns:
+            List[Dict[str, Any]]: Filtered elements with overlapping elements removed
+        """
+        filtered_elements = []
+        elements = sorted(elements, key=lambda x: x['confidence'], reverse=True)
+        
+        for i, elem1 in enumerate(elements):
+            should_keep = True
+            coords1 = elem1['coordinates']
+            
+            # Check against all previously accepted elements
+            for elem2 in filtered_elements:
+                coords2 = elem2['coordinates']
+                
+                # Check if at least 3 coordinates are within threshold
+                matching_coords = 0
+                for i in range(4):
+                    if abs(coords1[i] - coords2[i]) <= threshold:
+                        matching_coords += 1
+                
+                if matching_coords >= 3:
+                    should_keep = False
+                    break
+            
+            if should_keep:
+                filtered_elements.append(elem1)
+        
+        return filtered_elements
+
     def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Reorder detected elements based on page layout analysis.
@@ -200,6 +243,9 @@ class PDFLayoutProcessor:
         """
         if not elements:
             return elements
+        
+        # First, filter out overlapping elements
+        elements = self._filter_overlapping_elements(elements)
         
         # Convert elements to numpy arrays for analysis
         boxes = np.array([elem['coordinates'] for elem in elements])

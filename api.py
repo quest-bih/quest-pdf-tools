@@ -349,5 +349,6 @@ if __name__ == "__main__":
     
     # Get port from environment variables, default to 8000 if not set
     port = int(os.getenv('FAST_API_PORT', 8000))
+    backend_workers = int(os.getenv('FAST_API_WORKERS', 1))
     
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("api:app", host="0.0.0.0", port=port, workers=backend_workers)
