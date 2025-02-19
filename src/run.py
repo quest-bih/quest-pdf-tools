@@ -23,7 +23,7 @@ def run_backend():
     logging.info("Starting backend server...")
     try:
         logging.info(f"You can now access the backend API on http://127.0.0.1:{back_end_port}")
-        subprocess.run([sys.executable, "api.py"], check=True) 
+        subprocess.run([sys.executable, "src/api.py"], check=True) 
     except subprocess.CalledProcessError as e:
         logging.error(f"Error starting backend server: {e}")
         sys.exit(1)
@@ -33,7 +33,7 @@ def run_frontend():
     logging.info("Starting frontend server...")
     try:
         logging.info(f"You can access the web application on http://127.0.0.1:{front_end_port}")
-        subprocess.run([sys.executable, "app.py"], check=True)
+        subprocess.run([sys.executable, "src/app.py"], check=True)
     except subprocess.CalledProcessError as e:
         logging.error(f"Error starting frontend server: {e}")
         sys.exit(1)
@@ -54,7 +54,7 @@ def main():
     else:  # full mode
         # Start backend in a separate process
         logging.info(f"You can now access the backend API on http://127.0.0.1:{back_end_port}")
-        backend_process = subprocess.Popen([sys.executable, "api.py"])
+        backend_process = subprocess.Popen([sys.executable, "src/api.py"])
         try:
             # Start frontend (this will block until frontend is closed)
             run_frontend()

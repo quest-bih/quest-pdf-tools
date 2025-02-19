@@ -33,4 +33,4 @@ ENV DEPLOY_MODE=${DEPLOY_MODE:-"full"}
 EXPOSE $FASTAPI_PORT $GRADIO_PORT
 
 # Use run.py as the entrypoint with shell form for variable interpolation
-CMD python run.py --mode $DEPLOY_MODE
+CMD python src/run.py --mode $DEPLOY_MODE

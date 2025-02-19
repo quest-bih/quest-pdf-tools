@@ -54,6 +54,7 @@ Create a .env file in the root directory with the following content
 GRADIO_PORT = XXXX # Gradio web interface port defaults to 7860
 FAST_API_PORT = XXXX # FastAPI backend port defaults to 8000
 DEPLOY_MODE = "full" # Deploy mode can be "full" or "backend" : "full" for an additional deployement of frontend, "backend" for backend only
+FAST_API_WORKERS = X # Number of FastAPI workers defaults to 1
 ```
 
 ## Usage
@@ -62,13 +63,13 @@ Start the application in one of two modes:
 
 1. Full mode (includes frontend and backend):
 ```bash
-python run.py --mode full
+python src/run.py --mode full
 ```
 The frontend will be available at  `127.0.0.1:<GRADIO_PORT>` while the backend will be available at `127.0.0.1:<FAST_API_PORT>`
 
 2. Backend mode (only backend):
 ```bash
-python run.py --mode backend
+python src/run.py --mode backend
 ```
 The backend will be available at `127.0.0.1:<FAST_API_PORT>`
 
@@ -228,19 +229,28 @@ Below are examples demonstrating the various processing capabilities of Quest PD
 
 ```plaintext
 quest-pdf-tools/
-├── api.py                 # FastAPI endpoints and API configuration
-├── app.py                # Gradio web interface implementation
-├── doc_layout.py         # Document layout analysis implementation
-├── pdf_processor.py      # Core PDF processing functionality
-├── utils.py             # Utility functions and helper methods
-├── run.py               # Main application entry point
-├── models/              # Pre-trained model files
+├── src/                  # Source code directory
+│   ├── api.py            # FastAPI endpoints and API configuration
+│   ├── app.py            # Gradio web interface implementation
+│   ├── doc_layout.py     # Document layout analysis implementation
+│   ├── pdf_processor.py  # Core PDF processing functionality
+│   ├── utils.py          # Utility functions and helper methods
+│   └── run.py            # Main application entry point
+├── examples/             # Example files and processing results
+│   └── ...               # Sample scientific paper with processing outputs
+├── models/               # Pre-trained model files
 │   └── ...
-├── pdfs/               # Directory for temporary PDF storage
+├── pdfs/                 # Directory for temporary PDF storage
 │   └── ...
-├── requirements.txt    # Python dependencies
-├── .env               # Environment configuration
-└── Dockerfile         # Container configuration
+├── wiki/                 # Project documentation and wiki
+├── requirements.txt      # Python package dependencies
+├── .env                  # Environment configuration
+├── .gitignore            # Git ignore rules
+├── .dockerignore         # Docker ignore rules
+├── CODE_OF_CONDUCT.md    # Project code of conduct
+├── LICENSE               # Project license terms
+├── logo.png              # Project logo
+└── Dockerfile            # Container configuration
 ```
 
 ## Contributing
