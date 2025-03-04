@@ -135,10 +135,16 @@ class PDFLayoutProcessor:
         """
         detections = []
         for box in det_res[0].boxes:
+            coords = box.xyxy[0].tolist()
+            y0 = coords[1]  # Get y0 coordinate
+            
+            # Override class_id to 2 (abandon) if y0 is less than 50 or greater than 3250
+            class_id = 2 if (y0 < 50.0 or y0 > 3250.0) else int(box.cls)
+            
             detection = {
-                "class_id": int(box.cls),
+                "class_id": class_id,
                 "confidence": float(box.conf),
-                "coordinates": box.xyxy[0].tolist()
+                "coordinates": coords
             }
             detections.append(detection)
         logger.info(f"Page {page_num}: Found {len(detections)} detections")
