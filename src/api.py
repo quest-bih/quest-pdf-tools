@@ -342,6 +342,67 @@ async def extract_markdown(file: UploadFile):
         logger.error(f"Error converting to markdown: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/extract-sections/")
+async def extract_sections(
+    file: UploadFile, 
+    section_type: str = None
+):
+    """
+    Extract specific sections from a PDF file.
+    
+    Args:
+        file (UploadFile): The uploaded PDF file to process
+        section_type (str, optional): Type of section to extract (methods, discussion, results, das).
+                                    If None and extract_all is False, returns an error.
+        extract_all (bool, optional): If True, extracts all available sections.
+                                    Defaults to False.
+        
+    Returns:
+        JSONResponse: Dictionary containing extracted section(s)
+                     {"section_type": "extracted_text"} or
+                     {"sections": {"section_type": "extracted_text", ...}}
+        
+    Raises:
+        HTTPException: If extraction fails or invalid section type is provided
+    """
+    try:
+        # Create a unique directory for this PDF
+        pdf_dir = UPLOADS_DIR / Path(file.filename).stem
+        pdf_dir.mkdir(exist_ok=True)
+        
+        # Save uploaded file
+        file_path = pdf_dir / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Create PDFProcessor instance
+        processor = PDFProcessor(file_path, "", "")
+        
+        # Validate section type if provided
+        valid_sections = ["methods", "discussion", "results", "das", "all"]
+        if section_type and section_type.lower() not in valid_sections:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid section type. Must be one of: {', '.join(valid_sections)}"
+            )
+        
+        # Extract sections
+        extracted_content = processor.extract_sections(
+            file_path,
+            section_type=section_type,
+        )
+        
+        # Return appropriate response based on extraction mode
+        if section_type == "all" or section_type is None or section_type.strip() == "":
+            return JSONResponse(content={"sections": extracted_content})
+        else:
+            return JSONResponse(content={section_type: extracted_content})
+    
+    except Exception as e:
+        logger.error(f"Error extracting sections: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     
     # Load environment variables from .env file

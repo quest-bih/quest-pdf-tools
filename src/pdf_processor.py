@@ -7,6 +7,9 @@ from pathlib import Path
 from PIL import Image
 from doc_layout import PDFLayoutProcessor
 from utils import *
+from sections import METHODS_TERMS,DATA_AVAILABILITY,DISCUSSION_TERMS,RESULTS_TERMS
+from  extractor_helper import extract_section, remove_references_section
+import re 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -390,7 +393,7 @@ class PDFProcessor:
             # Read CSV file and store rows (only class 0 and 1)
             with open(results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
-                rows = [row for row in csv_reader if int(row['class_id']) in [0, 1] and float(row['confidence']) > 0.5]
+                rows = [row for row in csv_reader if int(row['class_id']) in [0, 1] and float(row['confidence']) > 0.2]
             
             # Process each row
             for i in range(len(rows)):
@@ -435,7 +438,7 @@ class PDFProcessor:
                     if current_row['class_id'] == next_row['class_id']:
                         # If next text starts with lowercase, join with space
                         if next_text and next_text[0].islower():
-                            extracted_text.append(current_text + " ")
+                            extracted_text.append(current_text + "")
                         else:
                             extracted_text.append(current_text + "\n")
                     else:
@@ -612,8 +615,52 @@ class PDFProcessor:
 
         except Exception as e:
             logging.error(f"Error extracting markdown from PDF: {e}")
-            return ""
+            return ""   
+    
+    def extract_sections(self, pdf_path: str, section_type=None):
+        """
+        Extracts specified sections from the given PDF.
+        :param pdf_path: Path to the PDF file.
+        :param section_type: Type of section to extract. If None, extracts all sections.
+        :param extract_all: If True, extracts all sections. If False, extracts only the specified section.
+        
+        :return: Dictionary of extracted sections.
+        """
+        pdf_path = Path(pdf_path)
+        pdf_name = pdf_path.stem
+        pdf_dir = Path('pdfs') / pdf_name
+        pdf_txt = pdf_dir / f'{pdf_name}.txt'
+        if not Path(pdf_txt).exists():
+            logging.info(f"Extracting text from PDF: {pdf_path}")
+            self.extract_text(pdf_path)
+        with open(pdf_txt, 'r') as f:
+            text = f.read()
 
+
+        text_with_no_ref = remove_references_section(text)
+       
+        # Define terms based on the section type
+        section_terms = {
+            "methods": METHODS_TERMS,
+            "discussion": DISCUSSION_TERMS,
+            "results": RESULTS_TERMS,
+            "das": DATA_AVAILABILITY  
+        }
+
+        # If section_type is None or 'all', extract all sections
+        if section_type is None or section_type.lower() == 'all' or not section_type.strip():
+            extracted_sections = {}
+            for section_name, terms in section_terms.items():
+                section_text = extract_section(text_with_no_ref, terms)
+                extracted_sections[section_name] = section_text
+            return extracted_sections
+        
+        # Extract the specified section
+        terms = section_terms.get(section_type.lower())
+        if terms:
+            extracted_section = extract_section(text_with_no_ref, terms)
+            return extracted_section if extracted_section else ""
+        return ""
 
 # def main():
 #     # Configuration
