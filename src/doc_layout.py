@@ -197,42 +197,63 @@ class PDFLayoutProcessor:
         logger.info(f"Saved detection results to {output_path}")
 
 
-    def _filter_overlapping_elements(self, elements: List[Dict[str, Any]], threshold: float = 5.0) -> List[Dict[str, Any]]:
+    def _filter_overlapping_elements(self, elements: List[Dict[str, Any]], overlap_threshold: float = 0.6) -> List[Dict[str, Any]]:
         """
-        Filter out overlapping elements with lower confidence scores.
+        Filter out overlapping elements, keeping only the larger box when there's significant overlap.
         
         Args:
             elements (List[Dict[str, Any]]): List of detected elements
-            threshold (float): Maximum allowed difference in coordinates (in degrees)
+            overlap_threshold (float): Minimum overlap ratio to consider boxes as overlapping
             
         Returns:
             List[Dict[str, Any]]: Filtered elements with overlapping elements removed
         """
-        filtered_elements = []
-        elements = sorted(elements, key=lambda x: x['confidence'], reverse=True)
+        if not elements:
+            return []
         
-        for i, elem1 in enumerate(elements):
-            should_keep = True
-            coords1 = elem1['coordinates']
+        # Function to calculate box area
+        def box_area(box):
+            return (box[2] - box[0]) * (box[3] - box[1])
+        
+        # Function to calculate overlap area between two boxes
+        def overlap_area(box1, box2):
+            # Calculate intersection coordinates
+            x_left = max(box1[0], box2[0])
+            y_top = max(box1[1], box2[1])
+            x_right = min(box1[2], box2[2])
+            y_bottom = min(box1[3], box2[3])
             
-            # Check against all previously accepted elements
-            for elem2 in filtered_elements:
-                coords2 = elem2['coordinates']
+            # Check if there is an overlap
+            if x_right <= x_left or y_bottom <= y_top:
+                return 0.0
+            
+            return (x_right - x_left) * (y_bottom - y_top)
+        
+        # Sort elements by area (largest first)
+        elements = sorted(elements, key=lambda x: box_area(x['coordinates']), reverse=True)
+        
+        result = []
+        for elem in elements:
+            coords = elem['coordinates']
+            elem_area = box_area(coords)
+            should_keep = True
+            
+            # Check against all elements we've already decided to keep
+            for kept_elem in result:
+                kept_coords = kept_elem['coordinates']
                 
-                # Check if at least 3 coordinates are within threshold
-                matching_coords = 0
-                for i in range(4):
-                    if abs(coords1[i] - coords2[i]) <= threshold:
-                        matching_coords += 1
+                # Calculate overlap
+                overlap = overlap_area(coords, kept_coords)
                 
-                if matching_coords >= 3:
+                # If overlap is significant relative to the current element's area
+                if overlap / elem_area > overlap_threshold:
                     should_keep = False
                     break
             
             if should_keep:
-                filtered_elements.append(elem1)
+                result.append(elem)
         
-        return filtered_elements
+        return result
 
     def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
