@@ -48,4 +48,11 @@ DATA_AVAILABILITY = ['Data availability','Data availability.','Data accessibilit
                      'Data accessibility statement','Data records','Accession codes','Open Practices Statement','Data access statement',
                      'Availability of data and material','Data Availability','Data sharing plans','Data and Code Availability Statement']
 
+CONCLUSION = ['Conclusion', 'Conclusions', 'Final Remarks', 'Concluding Remarks', 
+             'Summary and Conclusion', 'Summary and Conclusions', 
+             'Conclusion and Future Work', 'Conclusions and Future Work',
+             'Final Considerations', 'Closing Remarks', 'Summary and Discussion']
 
+ABSTRACT = ['Abstract', 'Summary', 'Executive Summary', 'Overview', 'Synopsis', 
+            'Abstract:', 'ABSTRACT', 'SUMMARY', 'Brief Summary', 'Research Summary',
+            'Study Summary', 'Paper Summary', 'Article Summary']

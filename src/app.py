@@ -110,87 +110,183 @@ def process_pdf(file, endpoint):
     except requests.exceptions.RequestException as e:
         return f"Error processing PDF: {str(e)}", None, None, None, None, None
 
-with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin()) as demo:
-    gr.Markdown("# Quest PDF Tools")
+def extract_sections_from_pdf(file):
+    if file is None:
+        gr.Warning("Please upload a PDF file first.")
+        return None, None, None, None, None
     
-    with gr.Row():
-        with gr.Column(scale=1, variant="panel"):
+    API_URL = "http://localhost:8000/extract-sections"
+    input_filename = os.path.basename(file.name)
+    files = {"file": (input_filename, open(file.name, "rb"), "application/pdf")}
+    
+    try:
+        response = requests.post(API_URL, files=files)
+        response.raise_for_status()
+        
+        result = response.json()
+        sections = result.get("sections", {})
+        
+        methods = sections.get("methods", "No methods section found.")
+        results = sections.get("results", "No results section found.")
+        discussion = sections.get("discussion", "No discussion section found.")
+        das = sections.get("das", "No data availability statement found.")
+        
+        return preview_pdf(file), methods, results, discussion, das
+    
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Error extracting sections: {str(e)}"
+        return None, error_msg, error_msg, error_msg, error_msg
+css="""
+        footer {display: none !important}
+        .contain {max-width: 95% !important}
+    """
+with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin(),css=css) as demo:
+    with gr.Tabs():
+        with gr.TabItem("PDF Processing"):
             with gr.Row():
-                file_input = gr.File(label="Upload PDF", file_types=[".pdf"],height=150, file_count='single')
-            with gr.Row(): 
-                endpoint = gr.Radio(
-                    choices=[
-                        ("PDF layout (bboxes) ", "process-pdf"),
-                        ("Extract Figures", "extract-figures"),
-                        ("Extract Tables", "extract-tables"),
-                        ("To Text", "extract-text"),
-                        ("To Markdown", "extract-markdown"),
-                        ("Remove Irrelevant Content", "remove-irrelevant"),
-                    ],
-                    label="Select Processing Type",
-                    value="process-pdf"
-                )
-            with gr.Row():
-                process_btn = gr.Button("Process PDF", variant="primary")
-                clear_btn = gr.Button("Clear")
+                with gr.Column(scale=1, variant="panel"):
+                    with gr.Row():
+                        file_input = gr.File(label="Upload PDF", file_types=[".pdf"],height=150, file_count='single')
+                    with gr.Row(): 
+                        endpoint = gr.Radio(
+                            choices=[
+                                ("PDF layout (bboxes) ", "process-pdf"),
+                                ("Extract Figures", "extract-figures"),
+                                ("Extract Tables", "extract-tables"),
+                                ("To Text", "extract-text"),
+                                ("To Markdown", "extract-markdown"),
+                                ("Remove Irrelevant Content", "remove-irrelevant"),
+                            ],
+                            label="Select Processing Type",
+                            value="process-pdf"
+                        )
+                    with gr.Row():
+                        process_btn = gr.Button("Process PDF", variant="primary")
+                        clear_btn = gr.Button("Clear")
 
-            with gr.Row():
-                output = gr.TextArea(
-                    label="Text Output",
-                    show_label=True, 
-                    interactive=False, 
-                    lines=22, 
-                    visible=False,
-                    show_copy_button=True,
-                    autoscroll=False
-                )
-                markdown_output = gr.Markdown(
-                    label= "Markdown text",
-                    show_label=True,
-                    show_copy_button=True,
-                    visible=False,
-                    container=True,
-                    min_height=500,
-                    max_height=500
+                    with gr.Row():
+                        output = gr.TextArea(
+                            label="Text Output",
+                            show_label=True, 
+                            interactive=False, 
+                            lines=22, 
+                            visible=False,
+                            show_copy_button=True,
+                            autoscroll=False
+                        )
+                        markdown_output = gr.Markdown(
+                            label= "Markdown text",
+                            show_label=True,
+                            show_copy_button=True,
+                            visible=False,
+                            container=True,
+                            min_height=500,
+                            max_height=500
+                            )
+                        figures_gallery = gr.Gallery(
+                            label="Extracted Figures",
+                            visible=False,
+                            columns=2,
+                            height=400,
+                            selected_index= 1,
+                            allow_preview=True
+                        )
+                        tables_gallery = gr.Gallery(
+                            label="Extracted Tables",
+                            visible=False,
+                            columns=2,
+                            height=400,
+                        )
+                    
+                    with gr.Row():
+                        download_output = gr.File(label="Download Output", visible=True, interactive=False)
+                    
+                    endpoint.change(
+                        fn=update_output_visibility,
+                        inputs=[endpoint],
+                        outputs=[output, markdown_output, figures_gallery, tables_gallery, download_output]
                     )
-                figures_gallery = gr.Gallery(
-                    label="Extracted Figures",
-                    visible=False,
-                    columns=2,
-                    height=400,
-                    selected_index= 1,
-                    allow_preview=True
-                )
-                tables_gallery = gr.Gallery(
-                    label="Extracted Tables",
-                    visible=False,
-                    columns=2,
-                    height=400,
-                )
+                    
+                with gr.Column(scale=2):
+                    preview = gr.HTML(label="PDF Preview", min_height=900)
+                    file_input.change(preview_pdf, inputs=[file_input], outputs=[preview])
             
+                process_btn.click(
+                    process_pdf,
+                    inputs=[file_input, endpoint],
+                    outputs=[output, markdown_output, preview, download_output, figures_gallery, tables_gallery]
+                )
+                
+                clear_btn.click(
+                    lambda: (None, None, None, None, None, None,None), 
+                    None, 
+                    [file_input, output, markdown_output, preview, figures_gallery, tables_gallery, download_output]
+                    )
+        
+        with gr.TabItem("Extract Sections"):
             with gr.Row():
-                download_output = gr.File(label="Download Output", visible=True, interactive=False)
+                with gr.Column(scale=1, variant="panel"):
+                    with gr.Row():
+                        sections_file_input = gr.File(label="Upload PDF", file_types=[".pdf"], height=150, file_count='single')
+                    
+                    with gr.Row():
+                        extract_sections_btn = gr.Button("Extract Sections", variant="primary")
+                        clear_sections_btn = gr.Button("Clear")
+                    
+                    with gr.Row():
+                        methods_output = gr.TextArea(
+                            label="Methods Section",
+                            show_label=True,
+                            interactive=False,
+                            lines=5,max_lines=5,
+                            show_copy_button=True,
+                            autoscroll=False
+                        )
+                    
+                    with gr.Row():
+                        results_output = gr.TextArea(
+                            label="Results Section",
+                            show_label=True,
+                            interactive=False,
+                            lines=5,max_lines=5,
+                            show_copy_button=True,
+                            autoscroll=False
+                        )
+                    
+                    with gr.Row():
+                        discussion_output = gr.TextArea(
+                            label="Discussion Section",
+                            show_label=True,
+                            interactive=False,
+                            lines=5,max_lines=5,
+                            show_copy_button=True,
+                            autoscroll=False
+                        )
+                    
+                    with gr.Row():
+                        das_output = gr.TextArea(
+                            label="Data Availability Statement",
+                            show_label=True,
+                            interactive=False,
+                            lines=2,max_lines=2,
+                            show_copy_button=True,
+                            autoscroll=False
+                        )
+                
+                with gr.Column(scale=2):
+                    sections_preview = gr.HTML(label="PDF Preview", min_height=900)
+                    sections_file_input.change(preview_pdf, inputs=[sections_file_input], outputs=[sections_preview])
             
-            endpoint.change(
-                fn=update_output_visibility,
-                inputs=[endpoint],
-                outputs=[output, markdown_output, figures_gallery, tables_gallery, download_output]
+            extract_sections_btn.click(
+                extract_sections_from_pdf,
+                inputs=[sections_file_input],
+                outputs=[sections_preview, methods_output, results_output, discussion_output, das_output]
             )
             
-        with gr.Column(scale=2):
-            preview = gr.HTML(label="PDF Preview", min_height=900)
-            file_input.change(preview_pdf, inputs=[file_input], outputs=[preview])
-    
-        process_btn.click(
-            process_pdf,
-            inputs=[file_input, endpoint],
-            outputs=[output, markdown_output, preview, download_output, figures_gallery, tables_gallery]
-        )
-        
-        clear_btn.click(
-            lambda: (None, None, None, None, None, None,None), 
-            None, 
-            [file_input, output, markdown_output, preview, figures_gallery, tables_gallery, download_output]
+            clear_sections_btn.click(
+                lambda: (None, None, None, None, None, None),
+                None,
+                [sections_file_input, sections_preview, methods_output, results_output, discussion_output, das_output]
             )
 
 if __name__ == "__main__":

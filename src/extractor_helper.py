@@ -61,7 +61,7 @@ def extract_section(text, section_terms):
     # Create a list of all possible section terms from the sections module
     all_section_terms = (METHODS_TERMS + RESULTS_TERMS + DISCUSSION_TERMS + 
                         REFERENCES_TERMS + FUNDING + INTRODUCTION + CAS + 
-                        ACNOWLEDGEMENTS + AUTH_CONT + ABBREVIATIONS + 
+                        ACNOWLEDGEMENTS + AUTH_CONT + ABBREVIATIONS + CONCLUSION + ABSTRACT +
                         LIMITATIONS + COI + SUPP_DATA + DATA_AVAILABILITY + ETHICS)
     
     # Create regex patterns for different formatting styles of the target section
