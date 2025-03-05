@@ -48,6 +48,7 @@ def extract_section(text, section_terms):
     str
         The extracted section text, including the section header. Returns an empty string
         if the section is not found. For inline sections, returns only the header line.
+        If multiple sections are found, returns the longest one.
         
     Notes:
     -----
@@ -55,6 +56,7 @@ def extract_section(text, section_terms):
     - Section matching is case-insensitive
     - Section headers must be preceded by an empty line (except for inline sections)
     - Section ends when another known section header is encountered
+    - When multiple sections match, the longest one is returned
     """
     
     text = remove_duplicate_pargraphs(text)
@@ -80,21 +82,24 @@ def extract_section(text, section_terms):
         r'\n\s*\n\s*(?:\d+\s*\|\s*)(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]'
     ]
     
-    # Find the target section using any of the patterns
-    section_start = None
-    for pattern in section_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            section_start = match.start()
-            break
+    # Find all occurrences of the target section using any of the patterns
+    section_matches = []
     
-    if section_start is None:
-        # Try the inline pattern when standard patterns don't match
+    for pattern in section_patterns:
+        matches = list(re.finditer(pattern, text, re.IGNORECASE))
+        for match in matches:
+            section_matches.append((match.start(), pattern))
+    
+    # If no matches found with standard patterns, try inline pattern
+    if not section_matches:
         inline_pattern = r'\n\s*(' + '|'.join(map(re.escape, section_terms)) + r')[\s:]([^\n]+)'
         match = re.search(inline_pattern, text, re.IGNORECASE)
         if match:
             return match.group(0).strip()
         return ""
+    
+    # Sort matches by position in text
+    section_matches.sort(key=lambda x: x[0])
     
     # Create patterns for different formatting styles of the next section
     next_section_patterns = []
@@ -107,16 +112,26 @@ def extract_section(text, section_terms):
     # Create pattern for any next section except the current one
     next_section_pattern = r'\n\s*\n\s*(?:\d+\.|\[?\d+\]?\.?|[IVXivx]+\.|\d+\s*\|\s*)?\s*(' + '|'.join(next_section_patterns) + r')\s*[\n:]'
     
-    # Find the next section after our target section
-    next_section_match = re.search(next_section_pattern, text[section_start + 1:], re.IGNORECASE)
+    # Extract all sections and find the longest one
+    extracted_sections = []
     
-    if next_section_match:
-        # If another section is found, extract everything up to that section
-        section_end = section_start + 1 + next_section_match.start()
-        return text[section_start:section_end].strip()
+    for section_start, pattern in section_matches:
+        # Find the next section after our target section
+        next_section_match = re.search(next_section_pattern, text[section_start + 1:], re.IGNORECASE)
+        
+        if next_section_match:
+            # If another section is found, extract everything up to that section
+            section_end = section_start + 1 + next_section_match.start()
+            extracted_sections.append(text[section_start:section_end].strip())
+        else:
+            # If no next section is found, extract everything until the end
+            extracted_sections.append(text[section_start:].strip())
+    
+    # Return the longest extracted section
+    if extracted_sections:
+        return max(extracted_sections, key=len)
     else:
-        # If no next section is found, extract everything until the end
-        return text[section_start:].strip()
+        return ""
     
 def remove_references_section(text):
     """
