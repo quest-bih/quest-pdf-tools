@@ -1,5 +1,5 @@
 ETHICS = ['Ethics Statement','Statement of Ethics Approval','Ethics approval and consent to participate',
-          'Consent for publication','Ethical Approval','Consent of publication','Compliance with ethics','COMPLIANCE WITH ETHICS']
+          'Consent for publication','Ethical Approval','Consent of publication','Compliance with ethics','COMPLIANCE WITH ETHICS',]
 
 FUNDING = ['Funding','Funding:','Funding statement']
 
@@ -34,7 +34,7 @@ METHODS_TERMS = ['Method details','System and methods','Methods and results',"Me
                  'Material and Method', 'Material and methods','Experimental methods','Materials and Methods', 'Materials and methods', 'Material & Method',
                  'Material & method',  'Materials & Methods', 'Materials & methods',  'Online Methods', 'Online methods', 'Online method', 'Online Method',
                  'Experimental procedures','Study population and procedures','Patients and methods','Material, Design and Procedure',
-                 'Experimental model and subject details','Experimental Section']
+                 'Experimental model and subject details','Experimental Section','Methods and analysis']
 
 RESULTS_TERMS = ['Results','Result','Outcome',' Results and discussion','Outputs','Patient Outcome']
 
@@ -45,7 +45,8 @@ DATA_AVAILABILITY = ['Data availability','Data availability.','Data accessibilit
                      'Data sharing statement','Information on author access to data','Data Materials and Software Availability','Data deposition',
                      'Deposited Data','Accessibility of data','Data availability statement','Open practices','Open data statement',
                      'Data sharing statement','Data and code availability','Data and materials availability','Data and code available',
-                     'Data accessibility statement','Data records','Accession codes','Open Practices Statement','Data access statement',
+                     'Data accessibility statement','Data Availability Statement',
+                     'Data records','Accession codes','Open Practices Statement','Data access statement',
                      'Availability of data and material','Data Availability','Data sharing plans','Data and Code Availability Statement']
 
 CONCLUSION = ['Conclusion', 'Conclusions', 'Final Remarks', 'Concluding Remarks', 

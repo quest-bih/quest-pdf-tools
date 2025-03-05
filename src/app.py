@@ -240,7 +240,8 @@ with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin(),css=c
                             interactive=False,
                             lines=5,max_lines=5,
                             show_copy_button=True,
-                            autoscroll=False
+                            autoscroll=False,
+                            autofocus=False
                         )
                     
                     with gr.Row():
@@ -250,7 +251,8 @@ with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin(),css=c
                             interactive=False,
                             lines=5,max_lines=5,
                             show_copy_button=True,
-                            autoscroll=False
+                            autoscroll=False,
+                            autofocus=False
                         )
                     
                     with gr.Row():
@@ -260,7 +262,8 @@ with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin(),css=c
                             interactive=False,
                             lines=5,max_lines=5,
                             show_copy_button=True,
-                            autoscroll=False
+                            autoscroll=False,
+                            autofocus=False
                         )
                     
                     with gr.Row():
@@ -270,7 +273,8 @@ with gr.Blocks(fill_height=True, fill_width=True, theme=gr.themes.Origin(),css=c
                             interactive=False,
                             lines=2,max_lines=2,
                             show_copy_button=True,
-                            autoscroll=False
+                            autoscroll=False,
+                            autofocus=False
                         )
                 
                 with gr.Column(scale=2):

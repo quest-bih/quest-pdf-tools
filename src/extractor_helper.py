@@ -135,31 +135,25 @@ def extract_section(text, section_terms):
     
 def remove_references_section(text):
     """
-    Removes the references section from the text if found.
+    Removes the references section from a text document.
     
-    This function uses extract_section() to identify and remove the references
-    section from the provided text. The references section is identified using
-    predefined REFERENCES_TERMS. If no references section is found, the original
-    text is returned unchanged.
+    This function identifies and removes the references section from the input text
+    using the extract_section() function and predefined REFERENCES_TERMS. The function
+    preserves all text before and after the references section.
     
-    Parameters:
-    ----------
-    text : str
-        The input text from which to remove the references section.
-        Should be raw text content that may contain a references section.
-        
+    Args:
+        text (str): Raw text content potentially containing a references section.
+            The text can be in any format and may or may not contain a references section.
+            
     Returns:
-    -------
-    str
-        The text with the references section removed if found, otherwise
-        returns the original text unchanged. The returned text is stripped
-        of trailing whitespace.
-        
-    Notes:
-    -----
-    - Uses extract_section() to locate the references section
-    - Case-insensitive matching is used for identifying references section
-    - Returns original text if no references section is found
+        str: The input text with the references section removed. If no references
+            section is found, returns the original text unchanged.
+            
+    Example:
+        >>> text = "Introduction\\n...\\nReferences\\n1. Smith et al...\\nConclusion"
+        >>> result = remove_references_section(text)
+        >>> print(result)
+        "Introduction\\n...\\nConclusion"
     """
     # Use extract_section to get the references section
     references_section = extract_section(text, REFERENCES_TERMS)
@@ -172,8 +166,6 @@ def remove_references_section(text):
     
     if ref_start == -1:
         return text  # Shouldn't happen if extract_section found something
-        
-    # Remove the references section
-    return text[:ref_start].strip()
-
-    
+      
+    # remove only the reference section, keep the text before and after it 
+    return text[:ref_start] + text[ref_start + len(references_section):]
