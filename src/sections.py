@@ -1,7 +1,7 @@
 ETHICS = ['Ethics Statement','Statement of Ethics Approval','Ethics approval and consent to participate',
           'Consent for publication','Ethical Approval','Consent of publication','Compliance with ethics','COMPLIANCE WITH ETHICS',]
 
-FUNDING = ['Funding','Funding:','Funding statement']
+FUNDING = ['Funding','Funding:','Funding statement','Study Funding']
 
 INTRODUCTION = ['Introduction']
 

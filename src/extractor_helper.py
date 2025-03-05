@@ -1,6 +1,11 @@
 import re
 from sections import *
 
+all_section_terms = (METHODS_TERMS + RESULTS_TERMS + DISCUSSION_TERMS + 
+                        REFERENCES_TERMS + FUNDING + INTRODUCTION + CAS + 
+                        ACNOWLEDGEMENTS + AUTH_CONT + ABBREVIATIONS + CONCLUSION + ABSTRACT +
+                        LIMITATIONS + COI + SUPP_DATA + DATA_AVAILABILITY + ETHICS)
+
 def remove_duplicate_pargraphs(text):
     """
     Removes duplicate paragraphs from text while preserving empty lines.
@@ -17,7 +22,7 @@ def remove_duplicate_pargraphs(text):
     """
     # Split text into paragraphs and filter out duplicates while keeping empty lines
     paragraphs = [p for i, p in enumerate(text.split('\n')) 
-                 if p.strip() == '' or text.split('\n').index(p) == i]
+                 if p.strip() == ''or p.strip() in all_section_terms or text.split('\n').index(p) == i]
 
     # Join paragraphs back into text
     return '\n'.join(paragraphs)
@@ -60,11 +65,6 @@ def extract_section(text, section_terms):
     """
     
     text = remove_duplicate_pargraphs(text)
-    # Create a list of all possible section terms from the sections module
-    all_section_terms = (METHODS_TERMS + RESULTS_TERMS + DISCUSSION_TERMS + 
-                        REFERENCES_TERMS + FUNDING + INTRODUCTION + CAS + 
-                        ACNOWLEDGEMENTS + AUTH_CONT + ABBREVIATIONS + CONCLUSION + ABSTRACT +
-                        LIMITATIONS + COI + SUPP_DATA + DATA_AVAILABILITY + ETHICS)
     
     # Create regex patterns for different formatting styles of the target section
     # Handle regular format, spaced letters, numbered sections, and sections with colons
