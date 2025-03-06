@@ -21,7 +21,8 @@ LIMITATIONS = ['Limitations']
 
 COI = ['Conflicts of Interest','Competing interest statement','Declaration of interests','Declaration of interests',
        'Declarations of interests','Declarations of interest','Competing interests','Declaration of interests statement','Declaration of Competing Interest',
-       'Declaration of conflicting interests ','Conflict of Interest','Conflict of interests','Declaration of interest','Conflict of interest declaration']
+       'Declaration of conflicting interests ','Conflict of Interest','Conflict of interests','Declaration of interest','Conflict of interest declaration',
+       'Potential competing interests']
 
 SUPP_DATA = ['Supplemental data','Supplementary data','Supplemental material','Supplementary materials','Supplementary material','Supplemental information',
              'Supplementary Materials Captions']

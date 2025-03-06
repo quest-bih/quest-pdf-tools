@@ -7,6 +7,7 @@ A FastAPI-based web application and API service for processing PDF documents, pr
 
 - **PDF Layout Analysis**: Detects and annotates different document elements including titles, text blocks, figures, tables, and formulas
 - **Irrelevant Content Removal**: Automatically identifies and removes headers, footers, and other irrelevant content from PDFs
+- **Section Extraction**: Identifies and extracts logical document sections like Methods, Discussion, Results, etc.
 - **Figure Extraction**: Extracts and exports figures from PDFs into separate image files
 - **Table Extraction**: Identifies and exports tables from PDFs into separate files
 - **Text Extraction**: Extracts plain text content from PDFs with preserved formatting
@@ -20,6 +21,7 @@ This is an ongoing project, and some features are still under active development
 
 - Works exclusively with scientific PDF documents
 - Uses layout analysis optimized for academic papers
+- Currently extracts only four main sections (Methods, Results, Discussion, and Data Availability Statement), with plans to expand to more sections
 - Will improve over time through:
   - Manual refinements of the algorithms
   - Integration of more capable machine learning models
@@ -175,6 +177,19 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
      -H "Content-Type: multipart/form-data" \
      -F "file=@your_document.pdf"
 ```
+### 7. Extract Sections
+
+**Endpoint**: `POST /extract-sections/`
+
+Identifies and extracts logical document sections (Methods, Results, Discussion, etc.) and returns them as JSON.
+
+```bash
+curl -X POST "http://localhost:8000/extract-sections/" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@your_document.pdf" \
+     -F "section_type=methods"
+```
 
 ## Examples
 
@@ -183,6 +198,8 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
 The web interface provides an intuitive way to interact with the PDF processing tools. The interface features a clean, user-friendly design with drag-and-drop file upload capabilities and clear processing options.
 
 ![Frontend Interface](examples/front_end.png)
+
+![Frontend Interface](examples/front_end_sections.png)
 ### Example Processing Results
 
 Below are examples demonstrating the various processing capabilities of Quest PDF Tools using a sample scientific paper.
@@ -229,28 +246,30 @@ Below are examples demonstrating the various processing capabilities of Quest PD
 
 ```plaintext
 quest-pdf-tools/
-├── src/                  # Source code directory
-│   ├── api.py            # FastAPI endpoints and API configuration
-│   ├── app.py            # Gradio web interface implementation
-│   ├── doc_layout.py     # Document layout analysis implementation
-│   ├── pdf_processor.py  # Core PDF processing functionality
-│   ├── utils.py          # Utility functions and helper methods
-│   └── run.py            # Main application entry point
-├── examples/             # Example files and processing results
-│   └── ...               # Sample scientific paper with processing outputs
-├── models/               # Pre-trained model files
+├── src/                      # Source code directory
+│   ├── api.py                # FastAPI endpoints and API configuration
+│   ├── app.py                # Gradio web interface implementation
+│   ├── doc_layout.py         # Document layout analysis implementation
+│   ├── extractor_helper.py   # Helper functions for section extraction
+│   ├── sections.py           # Sections keyword file
+│   ├── pdf_processor.py      # Core PDF processing functionality
+│   ├── utils.py              # Utility functions and helper methods
+│   └── run.py                # Main application entry point
+├── examples/                 # Example files and processing results
+│   └── ...                   # Sample scientific paper with processing outputs
+├── models/                   # Pre-trained model files
 │   └── ...
-├── pdfs/                 # Directory for temporary PDF storage
+├── pdfs/                     # Directory for temporary PDF storage
 │   └── ...
-├── wiki/                 # Project documentation and wiki
-├── requirements.txt      # Python package dependencies
-├── .env                  # Environment configuration
-├── .gitignore            # Git ignore rules
-├── .dockerignore         # Docker ignore rules
-├── CODE_OF_CONDUCT.md    # Project code of conduct
-├── LICENSE               # Project license terms
-├── logo.png              # Project logo
-└── Dockerfile            # Container configuration
+├── wiki/                     # Project documentation and wiki
+├── requirements.txt          # Python package dependencies
+├── .env                      # Environment configuration
+├── .gitignore                # Git ignore rules
+├── .dockerignore             # Docker ignore rules
+├── CODE_OF_CONDUCT.md        # Project code of conduct
+├── LICENSE                   # Project license terms
+├── logo.png                  # Project logo
+└── Dockerfile                # Container configuration
 ```
 
 ## Contributing
