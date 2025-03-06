@@ -64,22 +64,23 @@ def extract_section(text, section_terms):
     - When multiple sections match, the longest one is returned
     """
     
-    text = remove_duplicate_pargraphs(text)
-    
     # Create regex patterns for different formatting styles of the target section
     # Handle regular format, spaced letters, numbered sections, and sections with colons
     section_patterns = [
         # Regular format: "Methods"
-        r'\n\s*\n\s*(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]',
+        r'\n\s*(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]',
         
         # Spaced letters: "M E T H O D S"
-        r'\n\s*\n\s*(' + '|'.join(' '.join(term) for term in [[c for c in term] for term in section_terms]) + r')\s*[\n:]',
+        r'\n\s*(' + '|'.join(' '.join(term) for term in [[c for c in term] for term in section_terms]) + r')\s*[\n:]',
         
         # Numbered sections: "1. Methods", "I. Methods", etc.
-        r'\n\s*\n\s*(?:\d+\.|\[?\d+\]?\.?|[IVXivx]+\.)\s*(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]',
+        r'\n\s*(?:\d+\.|\[?\d+\]?\.?|[IVXivx]+\.)\s*(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]',
         
         # Numbered sections with pipe: "1 | INTRODUCTION"
-        r'\n\s*\n\s*(?:\d+\s*\|\s*)(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]'
+        r'\n\s*(?:\d+\s*\|\s*)(' + '|'.join(map(re.escape, section_terms)) + r')\s*[\n:]',
+        
+        # inline matching
+        r'\n\s*(' + '|'.join(map(re.escape, section_terms)) + r')[\s:]([^\n]+)'    
     ]
     
     # Find all occurrences of the target section using any of the patterns
@@ -87,16 +88,9 @@ def extract_section(text, section_terms):
     
     for pattern in section_patterns:
         matches = list(re.finditer(pattern, text, re.IGNORECASE))
+        # print(matches)
         for match in matches:
             section_matches.append((match.start(), pattern))
-    
-    # If no matches found with standard patterns, try inline pattern
-    if not section_matches:
-        inline_pattern = r'\n\s*(' + '|'.join(map(re.escape, section_terms)) + r')[\s:]([^\n]+)'
-        match = re.search(inline_pattern, text, re.IGNORECASE)
-        if match:
-            return match.group(0).strip()
-        return ""
     
     # Sort matches by position in text
     section_matches.sort(key=lambda x: x[0])
@@ -109,19 +103,33 @@ def extract_section(text, section_terms):
         # Spaced letters
         next_section_patterns.append(' '.join([c for c in term]))
     
-    # Create pattern for any next section except the current one
-    next_section_pattern = r'\n\s*\n\s*(?:\d+\.|\[?\d+\]?\.?|[IVXivx]+\.|\d+\s*\|\s*)?\s*(' + '|'.join(next_section_patterns) + r')\s*[\n:]'
+    # Create patterns for next section (both regular and inline)
+    next_section_pattern = r'\n\s*(?:\d+\.|\[?\d+\]?\.?|[IVXivx]+\.|\d+\s*\|\s*)?\s*(' + '|'.join(next_section_patterns) + r')\s*[\n:]'
+    next_inline_pattern = r'\n\s*(' + '|'.join(next_section_patterns) + r')[\s:]'
     
     # Extract all sections and find the longest one
     extracted_sections = []
     
     for section_start, pattern in section_matches:
-        # Find the next section after our target section
+        # Find the next section after our target section (both regular and inline)
         next_section_match = re.search(next_section_pattern, text[section_start + 1:], re.IGNORECASE)
+        next_inline_match = re.search(next_inline_pattern, text[section_start + 1:], re.IGNORECASE)
+        # print(next_section_match)
+        # print(next_inline_match)
         
-        if next_section_match:
-            # If another section is found, extract everything up to that section
+        # Determine which pattern matched first (if any)
+        section_end = None
+        if next_section_match and next_inline_match:
+            if next_section_match.start() < next_inline_match.start():
+                section_end = section_start + 1 + next_section_match.start()
+            else:
+                section_end = section_start + 1 + next_inline_match.start()
+        elif next_section_match:
             section_end = section_start + 1 + next_section_match.start()
+        elif next_inline_match:
+            section_end = section_start + 1 + next_inline_match.start()
+        
+        if section_end:
             extracted_sections.append(text[section_start:section_end].strip())
         else:
             # If no next section is found, extract everything until the end
@@ -169,3 +177,18 @@ def remove_references_section(text):
       
     # remove only the reference section, keep the text before and after it 
     return text[:ref_start] + text[ref_start + len(references_section):]
+
+
+# with open("pdfs/10.3390nu14010148/10.3390nu14010148.txt", "r") as f:
+#     text = f.read()
+#     text2 = remove_duplicate_pargraphs(text)
+#     #save text2 to a file
+#     with open("output_para.txt", "w") as f:
+#         f.write(text2)
+
+#     # print(extract_section(text,METHODS_TERMS))
+    # print(extract_section(text,RESULTS_TERMS))
+#     # print(extract_section(text,DISCUSSION_TERMS))
+#     # print((extract_section(text,DATA_AVAILABILITY)))
+#     # print(extract_section(text,REFERENCES_TERMS))
+#     # print(remove_references_section(text))

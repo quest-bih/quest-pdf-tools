@@ -27,16 +27,16 @@ SUPP_DATA = ['Supplemental data','Supplementary data','Supplemental material','S
              'Supplementary Materials Captions']
 
 DISCUSSION_TERMS = ['Discussion', 'Discussions', 'Discussion and conclusion', 'Discussion and Conclusions', 
-                    'General discussion', 'Lessons learned', 'Results and discussion']
+                    'General discussion', 'Lessons learned']
 
-METHODS_TERMS = ['Method details','System and methods','Methods and results',"Methods and results:",'Experimental','Experiment','Method',
+METHODS_TERMS = ['Method details','System and methods','Methods and results',"Methods and results:",'Method',
                  'Methodology', 'Methods','Protocol','Intervention Description', 'Materials and Methods','Methods and materials','Materials and method',
                  'Material and Method', 'Material and methods','Experimental methods','Materials and Methods', 'Materials and methods', 'Material & Method',
                  'Material & method',  'Materials & Methods', 'Materials & methods',  'Online Methods', 'Online methods', 'Online method', 'Online Method',
                  'Experimental procedures','Study population and procedures','Patients and methods','Material, Design and Procedure',
                  'Experimental model and subject details','Experimental Section','Methods and analysis']
 
-RESULTS_TERMS = ['Results','Result','Outcome',' Results and discussion','Outputs','Patient Outcome']
+RESULTS_TERMS = ['Results','Result',' Results and discussion','Outputs','Patient Outcome']
 
 DATA_AVAILABILITY = ['Data availability','Data availability.','Data accessibility','Availability of data','Data Access','Accessibility of data and code',
                      'Data sharing','Data, Materials, and Software Availability.','Accessibility of data','Code and data availability statement',
