@@ -557,7 +557,7 @@ class PDFProcessor:
                     pix = current_page.get_pixmap(clip=current_rect)  
                     img_path = images_dir / f"figure_{i+1}.png"
                     pix.save(str(img_path))
-                    markdown_content.append(f"![Figure {i+1}]({img_path.relative_to(pdf_dir)})\n\n")
+                    markdown_content.append(f"![Figure]({img_path.relative_to(pdf_dir)})\n\n")
                     
                 elif class_id == 4:  # Figure caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
@@ -565,28 +565,11 @@ class PDFProcessor:
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id == 5:  # Table
-                    # Extract table text and convert to markdown
-                    table_text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
-                    # Simple table conversion (you might want to enhance this)
-                    lines = table_text.split('\n')
-                    if lines:
-                        # Create header separator
-                        header = lines[0].split()
-                        separator = ['---'] * len(header)
-                        
-                        # Format as markdown table
-                        markdown_table = [
-                            '| ' + ' | '.join(header) + ' |',
-                            '| ' + ' | '.join(separator) + ' |'
-                        ]
-                        
-                        # Add remaining rows
-                        for line in lines[1:]:
-                            cells = line.split()
-                            if cells:
-                                markdown_table.append('| ' + ' | '.join(cells) + ' |')
-                        
-                        markdown_content.append('\n'.join(markdown_table) + '\n\n')
+                    # Extract and save table
+                    pix = current_page.get_pixmap(clip=current_rect)
+                    img_path = images_dir / f"table_{i+1}.png"
+                    pix.save(str(img_path))
+                    markdown_content.append(f"![Table]({img_path.relative_to(pdf_dir)})\n\n")
                     
                 elif class_id == 6:  # Table caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
