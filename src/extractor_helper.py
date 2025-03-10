@@ -112,28 +112,28 @@ def extract_section(text, section_terms):
     
     for section_start, pattern in section_matches:
         # Find the next section after our target section (both regular and inline)
-        next_section_match = re.search(next_section_pattern, text[section_start + 1:], re.IGNORECASE)
-        next_inline_match = re.search(next_inline_pattern, text[section_start + 1:], re.IGNORECASE)
-        # print(next_section_match)
-        # print(next_inline_match)
+        remaining_text = text[section_start + 1:]
+        next_section_match = re.search(next_section_pattern, remaining_text, re.IGNORECASE)
+        next_inline_match = re.search(next_inline_pattern, remaining_text, re.IGNORECASE)
         
-        # Determine which pattern matched first (if any)
+        # Reset matches if they start at position 0
+        if next_section_match and next_section_match.start() == 0:
+            next_section_match = None
+        if next_inline_match and next_inline_match.start() == 0:
+            next_inline_match = None
+        
+        # Calculate section end based on the earliest match
         section_end = None
         if next_section_match and next_inline_match:
-            if next_section_match.start() < next_inline_match.start():
-                section_end = section_start + 1 + next_section_match.start()
-            else:
-                section_end = section_start + 1 + next_inline_match.start()
+            section_end = section_start + 1 + min(next_section_match.start(), next_inline_match.start())
         elif next_section_match:
             section_end = section_start + 1 + next_section_match.start()
         elif next_inline_match:
             section_end = section_start + 1 + next_inline_match.start()
-        
-        if section_end:
-            extracted_sections.append(text[section_start:section_end].strip())
-        else:
-            # If no next section is found, extract everything until the end
-            extracted_sections.append(text[section_start:].strip())
+            
+        # Extract section text
+        section_text = text[section_start:section_end].strip() if section_end else text[section_start:].strip()
+        extracted_sections.append(section_text)
     
     # Return the longest extracted section
     if extracted_sections:

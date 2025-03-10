@@ -28,7 +28,7 @@ SUPP_DATA = ['Supplemental data','Supplementary data','Supplemental material','S
              'Supplementary Materials Captions']
 
 DISCUSSION_TERMS = ['Discussion', 'Discussions', 'Discussion and conclusion', 'Discussion and Conclusions', 
-                    'General discussion', 'Lessons learned']
+                    'General discussion', 'Lessons learned','Results and discussion']
 
 METHODS_TERMS = ['Method details','System and methods','Methods and results',"Methods and results:",'Method',
                  'Methodology', 'Methods','Protocol','Intervention Description', 'Materials and Methods','Methods and materials','Materials and method',
@@ -37,7 +37,7 @@ METHODS_TERMS = ['Method details','System and methods','Methods and results',"Me
                  'Experimental procedures','Study population and procedures','Patients and methods','Material, Design and Procedure',
                  'Experimental model and subject details','Experimental Section','Methods and analysis']
 
-RESULTS_TERMS = ['Results','Result',' Results and discussion','Outputs','Patient Outcome']
+RESULTS_TERMS = ['Results','Result','Results and discussion','Outputs','Patient Outcome']
 
 DATA_AVAILABILITY = ['Data availability','Data availability.','Data accessibility','Availability of data','Data Access','Accessibility of data and code',
                      'Data sharing','Data, Materials, and Software Availability.','Accessibility of data','Code and data availability statement',
@@ -53,7 +53,8 @@ DATA_AVAILABILITY = ['Data availability','Data availability.','Data accessibilit
 CONCLUSION = ['Conclusion', 'Conclusions', 'Final Remarks', 'Concluding Remarks', 
              'Summary and Conclusion', 'Summary and Conclusions', 
              'Conclusion and Future Work', 'Conclusions and Future Work',
-             'Final Considerations', 'Closing Remarks', 'Summary and Discussion']
+             'Final Considerations', 'Closing Remarks', 'Summary and Discussion',
+             'Discussion and Conclusions','Discussion and conclusion']
 
 ABSTRACT = ['Abstract', 'Summary', 'Executive Summary', 'Overview', 'Synopsis', 
             'Abstract:', 'ABSTRACT', 'SUMMARY', 'Brief Summary', 'Research Summary',
