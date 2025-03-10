@@ -4,6 +4,9 @@ import requests
 import os
 from PIL import Image  # Add this import at the top
 from dotenv import load_dotenv
+import logging
+from urllib.parse import unquote
+import re
 
 def preview_pdf(file):
     if file is None:
@@ -100,9 +103,25 @@ def process_pdf(file, endpoint):
         else:  # process-pdf and remove-irrelevant
             output_filename = response.headers.get('content-disposition')
             if output_filename:
-                output_filename = output_filename.split('filename=')[-1].strip('"').split('/')[-1]
+                # Extract filename from content-disposition header
+                if 'filename*=' in output_filename:
+                    # Handle UTF-8 encoded filenames
+                    output_filename = output_filename.split("filename*=utf-8''")[-1]
+                else:
+                    # Handle regular filenames
+                    output_filename = output_filename.split('filename=')[-1].strip('"')
+                
+                # URL decode the filename and clean it
+                output_filename = unquote(output_filename)
+                output_filename = os.path.basename(output_filename)
+                
+                # Sanitize filename by removing invalid characters
+                output_filename = re.sub(r'[<>:"/\\|?*]', '_', output_filename)
             
-            output_path = os.path.join(os.path.dirname(file.name), output_filename)
+            # Use platform-independent path joining with sanitized filename
+            output_dir = os.path.dirname(file.name)
+            output_path = os.path.join(output_dir, output_filename)
+            
             with open(output_path, "wb") as f:
                 f.write(response.content)
             return None, None, preview_pdf(output_path), output_path, None, None
