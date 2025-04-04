@@ -629,17 +629,17 @@ class PDFProcessor:
             return extracted_section if extracted_section else ""
         return ""
 
-def main():
+# def main():
     
-#     # Initialize and run processor
-    processor = PDFProcessor(pdf_path='10.1002+nbm.1786.pdf', output_dir='pdfs1')
-    processor.extract_markdown()
+# #     # Initialize and run processor
+#     processor = PDFProcessor(pdf_path='10.1002+nbm.1786.pdf', output_dir='pdfs1')
+#     processor.extract_markdown()
     
-# #     if processor.remove_irrelevant_boxes():
-# #         logging.info("PDF processing completed successfully")
-# #     else:
-# #         logging.error("PDF processing failed")
+# # #     if processor.remove_irrelevant_boxes():
+# # #         logging.info("PDF processing completed successfully")
+# # #     else:
+# # #         logging.error("PDF processing failed")
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
