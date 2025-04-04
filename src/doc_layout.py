@@ -434,7 +434,7 @@ class PDFLayoutProcessor:
         
         return reordered_elements
     
-    def process_pdf(self, pdf_path: str) -> tuple:
+    def process_pdf(self, pdf_path: str, pdfs_dir: str=None) -> tuple:
         """
         Process a PDF file to detect and analyze its layout.
         
@@ -447,6 +447,8 @@ class PDFLayoutProcessor:
         
         Args:
             pdf_path (str): Path to the input PDF file
+            pdfs_dir (str, optional): Directory to store output files. 
+                                      If None, defaults to "pdfs"
             
         Returns:
             tuple: (output_pdf_path, results_path)
@@ -457,7 +459,10 @@ class PDFLayoutProcessor:
         pdf_name = pdf_path.stem
         
         # Create pdfs directory and PDF-specific subdirectory
-        pdfs_dir = Path("pdfs")
+        if pdfs_dir is None:
+            pdfs_dir = Path("pdfs")
+        else:
+            pdfs_dir = Path(pdfs_dir)
         pdf_output_dir = pdfs_dir / pdf_name
         pdfs_dir.mkdir(exist_ok=True)
         pdf_output_dir.mkdir(exist_ok=True)

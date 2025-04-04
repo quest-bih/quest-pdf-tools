@@ -15,9 +15,13 @@ import os
 FastAPI application for PDF processing and content extraction.
 
 This API provides endpoints for:
-- Processing PDF layouts
+- Processing PDF layouts and analyzing document structure
 - Removing irrelevant content (headers, footers)
 - Extracting figures, tables, text, and markdown content from PDFs
+- Extracting specific sections from PDF documents
+
+The API uses PDFLayoutProcessor and PDFProcessor classes to handle PDF operations.
+All uploaded files are stored in a unique directory under the 'pdfs' folder.
 """
 
 app = FastAPI(
@@ -44,13 +48,14 @@ async def process_pdf(file: UploadFile):
     Process a PDF file to detect and analyze its layout.
     
     Args:
-        file (UploadFile): The uploaded PDF file to process
+        file (UploadFile): The uploaded PDF file to process. Must be a valid PDF document.
         
     Returns:
-        FileResponse: The processed PDF file
+        FileResponse: The processed PDF file with layout analysis results.
+                     The file will have the same name as the input with '_processed' suffix.
         
     Raises:
-        HTTPException: If processing fails
+        HTTPException (500): If processing fails due to invalid PDF or processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -81,13 +86,14 @@ async def remove_irrelevant(file: UploadFile):
     Remove irrelevant content (headers, footers) from a PDF file.
     
     Args:
-        file (UploadFile): The uploaded PDF file to process
+        file (UploadFile): The uploaded PDF file to process. Must be a valid PDF document.
         
     Returns:
-        FileResponse: The cleaned PDF file with irrelevant content removed
+        FileResponse: The cleaned PDF file with irrelevant content removed.
+                     The file will have the same name as the input with '_cleaned' suffix.
         
     Raises:
-        HTTPException: If processing fails
+        HTTPException (500): If processing fails due to invalid PDF or processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -118,7 +124,7 @@ async def remove_irrelevant(file: UploadFile):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/extract-figures/")
-async def extract_figures(file: UploadFile, output_dir: str = None):
+async def extract_figures(file: UploadFile):
     """
     Extract figures from a PDF file and save them as individual image files.
     
@@ -128,9 +134,6 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
     
     Args:
         file (UploadFile): The PDF file to extract figures from. Must be a valid PDF document.
-        output_dir (str, optional): Custom directory path where extracted figures should be saved.
-                                  If not provided, figures are saved in a 'figures' subdirectory
-                                  within the PDF processing directory.
         
     Returns:
         FileResponse: A ZIP archive containing all extracted figures as separate image files.
@@ -151,15 +154,13 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # If no output_dir specified, use the PDF directory
-        if not output_dir:
-            output_dir = str(pdf_dir) + "/figures"
+        output_dir = str(pdf_dir) + "/figures"
 
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")
+        processor = PDFProcessor(file_path)
         
         # Extract figures
-        extracted_figures = processor.extract_figures(file_path, output_dir)
+        extracted_figures = processor.extract_figures()
         
         if not extracted_figures:
             return JSONResponse(
@@ -185,7 +186,7 @@ async def extract_figures(file: UploadFile, output_dir: str = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/extract-tables/")
-async def extract_tables(file: UploadFile, output_dir: str = None):
+async def extract_tables(file: UploadFile):
     """
     Extract tables from a PDF file and return them as a ZIP archive.
     
@@ -194,9 +195,6 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
     
     Args:
         file (UploadFile): The PDF file to extract tables from. Must be a valid PDF document.
-        output_dir (str, optional): Custom directory path where extracted tables should be saved.
-                                  If not provided, tables are saved in a 'tables' subdirectory
-                                  within the PDF processing directory.
         
     Returns:
         FileResponse: A ZIP archive containing all extracted tables as separate files.
@@ -216,15 +214,13 @@ async def extract_tables(file: UploadFile, output_dir: str = None):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # If no output_dir specified, use the PDF directory
-        if not output_dir:
-            output_dir = str(pdf_dir) + "/tables"
+        output_dir = str(pdf_dir) + "/tables"
 
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")
+        processor = PDFProcessor(file_path)
         
         # Extract tables
-        extracted_tables = processor.extract_tables(file_path, output_dir)
+        extracted_tables = processor.extract_tables()
         
         if not extracted_tables:
             return JSONResponse(
@@ -254,15 +250,19 @@ async def extract_text(file: UploadFile):
     """
     Extract text content from a PDF file.
     
+    This endpoint processes a PDF file to extract all text content while preserving
+    the document's structure and formatting.
+    
     Args:
-        file (UploadFile): The uploaded PDF file to process
+        file (UploadFile): The PDF file to extract text from. Must be a valid PDF document.
         
     Returns:
-        JSONResponse: Dictionary containing extracted text
-                     {"text": extracted_text}
+        JSONResponse: Dictionary containing extracted text in the format:
+                     {"text": "extracted text content"}
         
     Raises:
-        HTTPException: If extraction fails or no text is found
+        HTTPException (404): If no text content is found in the PDF.
+        HTTPException (500): If text extraction fails due to processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -275,10 +275,10 @@ async def extract_text(file: UploadFile):
             shutil.copyfileobj(file.file, buffer)
         
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        processor = PDFProcessor(file_path)  # Empty strings for unused parameters
         
         # Extract text
-        extracted_text = processor.extract_text(file_path)
+        extracted_text = processor.extract_text()
         
         if not extracted_text:
             return JSONResponse(
@@ -300,17 +300,19 @@ async def extract_markdown(file: UploadFile):
     Convert PDF content to markdown format.
     
     This endpoint extracts all content (text, figures, tables, formulas)
-    from the PDF and converts it to markdown syntax.
+    from the PDF and converts it to markdown syntax while preserving the
+    document's structure and formatting.
     
     Args:
-        file (UploadFile): The uploaded PDF file to process
+        file (UploadFile): The PDF file to convert. Must be a valid PDF document.
         
     Returns:
-        JSONResponse: Dictionary containing markdown text
-                     {"markdown": markdown_text}
+        JSONResponse: Dictionary containing markdown text in the format:
+                     {"markdown": "converted markdown content"}
         
     Raises:
-        HTTPException: If conversion fails
+        HTTPException (404): If no content could be converted to markdown.
+        HTTPException (500): If conversion fails due to processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -323,10 +325,10 @@ async def extract_markdown(file: UploadFile):
             shutil.copyfileobj(file.file, buffer)
         
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")  # Empty strings for unused parameters
+        processor = PDFProcessor(file_path)  # Empty strings for unused parameters
         
         # Process markdown
-        markdown_text = processor.extract_markdown(file_path)
+        markdown_text = processor.extract_markdown()
         
         if not markdown_text:
             return JSONResponse(
@@ -350,20 +352,27 @@ async def extract_sections(
     """
     Extract specific sections from a PDF file.
     
+    This endpoint processes a PDF file to extract specific sections based on the
+    provided section type. It can extract individual sections or all available sections.
+    
     Args:
-        file (UploadFile): The uploaded PDF file to process
-        section_type (str, optional): Type of section to extract (methods, discussion, results, das).
-                                    If None and extract_all is False, returns an error.
-        extract_all (bool, optional): If True, extracts all available sections.
-                                    Defaults to False.
+        file (UploadFile): The PDF file to extract sections from. Must be a valid PDF document.
+        section_type (str, optional): Type of section to extract. Valid values are:
+                                    - "methods": Extracts methods section
+                                    - "discussion": Extracts discussion section
+                                    - "results": Extracts results section
+                                    - "das": Extracts data analysis section
+                                    - "all": Extracts all available sections
+                                    If None or empty, extracts all sections.
         
     Returns:
-        JSONResponse: Dictionary containing extracted section(s)
-                     {"section_type": "extracted_text"} or
-                     {"sections": {"section_type": "extracted_text", ...}}
+        JSONResponse: Dictionary containing extracted section(s):
+                     - For specific section: {section_type: "extracted text"}
+                     - For all sections: {"sections": {"section_type": "extracted text", ...}}
         
     Raises:
-        HTTPException: If extraction fails or invalid section type is provided
+        HTTPException (400): If an invalid section type is provided.
+        HTTPException (500): If section extraction fails due to processing errors.
     """
     try:
         # Create a unique directory for this PDF
@@ -376,7 +385,7 @@ async def extract_sections(
             shutil.copyfileobj(file.file, buffer)
         
         # Create PDFProcessor instance
-        processor = PDFProcessor(file_path, "", "")
+        processor = PDFProcessor(file_path)
         
         # Validate section type if provided
         valid_sections = ["methods", "discussion", "results", "das", "all"]
@@ -388,7 +397,6 @@ async def extract_sections(
         
         # Extract sections
         extracted_content = processor.extract_sections(
-            file_path,
             section_type=section_type,
         )
         

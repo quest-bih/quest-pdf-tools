@@ -37,7 +37,7 @@ class PDFProcessor:
         page_height (float): Height of the PDF page in points
     """
     
-    def __init__(self, pdf_path: str, results_csv: str = None, output_pdf: str = None):
+    def __init__(self, pdf_path: str, results_csv: str = None, output_pdf: str = None, output_dir: str = None):
         """
         Initialize the PDF processor with file paths.
         
@@ -47,15 +47,29 @@ class PDFProcessor:
                                          If None, defaults to "{pdf_name}_results.csv"
             output_pdf (str, optional): Path where the processed PDF will be saved.
                                         If None, defaults to "{pdf_name}_processed.pdf"
+            output_dir (str, optional): Directory where all output files will be stored.
+                                        If None, defaults to 'pdfs/{pdf_name}'
         """
         self.pdf_path = pdf_path
         self.pdf_name = Path(pdf_path).stem
-        self.pdf_dir = Path('pdfs') / self.pdf_name
+        
+        # Set default output directory if not provided
+        if output_dir is None:
+            output_dir = 'pdfs'
+        # Create output directory if it doesn't exist
+        output_path = Path(output_dir)
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+            
+        self.output_dir = output_path
+        
+        # Create PDF-specific directory
+        self.pdf_dir = output_path / self.pdf_name
         self.pdf_dir.mkdir(parents=True, exist_ok=True)
         
         # Set default values if not provided
         if results_csv is None:
-            results_csv = f"{self.pdf_name}_results.csv"
+            results_csv = f"{self.pdf_name}_detections.csv"
         if output_pdf is None:
             output_pdf = f"{self.pdf_name}_processed.pdf"
         
@@ -153,7 +167,7 @@ class PDFProcessor:
             # Process the PDF using PDFLayoutProcessor if validation fails
             try:
                 processor = PDFLayoutProcessor()
-                _, output_csv = processor.process_pdf(self.pdf_path)
+                _, output_csv = processor.process_pdf(self.pdf_path,self.output_dir)
                 logging.info(f"PDF processed using PDFLayoutProcessor. Results saved to {output_csv}")
                 self.results_csv = output_csv  # Update the results CSV path
                 return self.remove_irrelevant_boxes()  # Retry with the new CSV
@@ -210,40 +224,30 @@ class PDFProcessor:
             logging.error(f"Error processing PDF: {e}")
             return False
 
-    def extract_figures(self, pdf_path: str, output_dir: str = None) -> List[str]:
+    def extract_figures(self) -> List[str]:
         """
         Extract figures from PDF using detection results.
         
-        Args:
-            pdf_path (str): Path to the PDF file
-            output_dir (str, optional): Directory to save extracted figures. 
-                                      Defaults to 'pdfs/{pdf_name}/figures'
-            
+        This method extracts figures detected in the PDF and saves them as individual image files.
+        If detection results don't exist, it will first process the PDF to generate them.
+        
         Returns:
             List[str]: List of paths to extracted figure files
         """
-        pdf_path = Path(pdf_path)
-        pdf_name = pdf_path.stem
-        pdf_dir = Path('pdfs') / pdf_name
-        
-        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
-        
-        if not Path(results_csv).exists():
-            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
-            # Use PDFLayoutProcessor instead of self.process_pdf
+        if not Path(self.results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {self.pdf_path}")
             processor = PDFLayoutProcessor()
-            _, output_csv = processor.process_pdf(str(pdf_path))
-            results_csv = Path(output_csv)
+            _, output_csv = processor.process_pdf(str(self.pdf_path),str(self.output_dir))
+            self.results_csv = output_csv
 
-        output_dir = pdf_dir / 'figures' if output_dir is None else Path(output_dir)
-        
+        output_dir = self.pdf_dir / 'figures' 
         output_dir.mkdir(parents=True, exist_ok=True)
         extracted_figures = []
 
         try:
             # Read detection results
             page_figures = {}
-            with open(results_csv, 'r') as f:
+            with open(self.results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
                 for row in csv_reader:
                     if int(row['class_id']) == 3:  # Figure class ID
@@ -258,7 +262,7 @@ class PDFProcessor:
                         })
 
             # Extract figures from PDF
-            doc = fitz.open(pdf_path)
+            doc = fitz.open(self.pdf_path)
             for page_num, figures in page_figures.items():
                 page = doc[page_num]
                 pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
@@ -273,7 +277,7 @@ class PDFProcessor:
 
                     # Crop and save figure
                     figure = img.crop((x0, y0, x1, y1))
-                    figure_name = f"{pdf_path.stem}_page{page_num + 1}_figure{fig_idx + 1}.png"
+                    figure_name = f"{self.pdf_name}_page{page_num + 1}_figure{fig_idx + 1}.png"
                     figure_path = output_dir / figure_name
                     figure.save(str(figure_path))
                     extracted_figures.append(str(figure_path))
@@ -285,40 +289,33 @@ class PDFProcessor:
             logging.error(f"Error extracting figures from PDF: {e}")
             return []
 
-    def extract_tables(self, pdf_path: str, output_dir: str = None) -> List[str]:
+    def extract_tables(self) -> List[str]:
         """
         Extract tables from PDF using detection results.
         
-        Args:
-            pdf_path (str): Path to the PDF file
-            output_dir (str, optional): Directory to save extracted tables. 
-                                      Defaults to 'pdfs/{pdf_name}/tables'
-            
+        This method:
+        1. Checks if detection results exist, processes the PDF if not
+        2. Reads table coordinates from detection results
+        3. Extracts tables from PDF pages
+        4. Saves tables as image files
+        
         Returns:
             List[str]: List of paths to extracted table files
         """
-        pdf_path = Path(pdf_path)
-        pdf_name = pdf_path.stem
-        pdf_dir = Path('pdfs') / pdf_name
-        
-        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
-        
-        if not Path(results_csv).exists():
-            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
-            # Use PDFLayoutProcessor instead of self.process_pdf
+        if not Path(self.results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {self.pdf_path}")
             processor = PDFLayoutProcessor()
-            _, output_csv = processor.process_pdf(str(pdf_path))
-            results_csv = Path(output_csv)
+            _, output_csv = processor.process_pdf(str(self.pdf_path),str(self.output_dir))
+            self.results_csv = output_csv
 
-        output_dir = pdf_dir / 'tables' if output_dir is None else Path(output_dir)
-        
+        output_dir = self.pdf_dir / 'tables'
         output_dir.mkdir(parents=True, exist_ok=True)
         extracted_tables = []
 
         try:
             # Read detection results
             page_tables = {}
-            with open(results_csv, 'r') as f:
+            with open(self.results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
                 for row in csv_reader:
                     if int(row['class_id']) == 5:  # Table class ID
@@ -333,7 +330,7 @@ class PDFProcessor:
                         })
 
             # Extract tables from PDF
-            doc = fitz.open(pdf_path)
+            doc = fitz.open(self.pdf_path)
             for page_num, tables in page_tables.items():
                 page = doc[page_num]
                 pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
@@ -348,7 +345,7 @@ class PDFProcessor:
 
                     # Crop and save table
                     table = img.crop((x0, y0, x1, y1))
-                    table_name = f"{pdf_path.stem}_page{page_num + 1}_table{table_idx + 1}.png"
+                    table_name = f"{self.pdf_name}_page{page_num + 1}_table{table_idx + 1}.png"
                     table_path = output_dir / table_name
                     table.save(str(table_path))
                     extracted_tables.append(str(table_path))
@@ -360,33 +357,26 @@ class PDFProcessor:
             logging.error(f"Error extracting tables from PDF: {e}")
             return []
 
-    def extract_text(self, pdf_path: str) -> str:
+    def extract_text(self) -> str:
         """
         Extract text from PDF using detection results and specified logic.
         
         This method extracts text from title and plain text regions (class_id 0 and 1)
         while maintaining proper spacing and formatting between text blocks.
         
-        Args:
-            pdf_path (str): Path to the PDF file
-            
         Returns:
             str: Extracted text content
         """
-        pdf_path = Path(pdf_path)
-        pdf_name = pdf_path.stem
-        pdf_dir = Path('pdfs') / pdf_name
-        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
-        output_txt = pdf_dir / f'{pdf_name}.txt'
-        
-        if not Path(results_csv).exists():
-            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+        if not Path(self.results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {self.pdf_path}")
             processor = PDFLayoutProcessor()
-            _, output_csv = processor.process_pdf(str(pdf_path))
-            results_csv = Path(output_csv)
+            _, output_csv = processor.process_pdf(str(self.pdf_path),str(self.output_dir))
+            self.results_csv = output_csv
 
+        output_txt = self.pdf_dir / f'{self.pdf_name}.txt'
+        
         try:
-            doc = fitz.open(pdf_path)
+            doc = fitz.open(self.pdf_path)
             extracted_text = []
             
             # Get PDF dimensions for scaling
@@ -399,7 +389,7 @@ class PDFProcessor:
             scale_y = pdf_height / (pdf_height * 300 / 72)
             
             # Read CSV file and store rows (only class 0 and 1)
-            with open(results_csv, 'r') as f:
+            with open(self.results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
                 rows = [row for row in csv_reader if int(row['class_id']) in [0, 1] and float(row['confidence']) > 0.2]
             
@@ -418,7 +408,6 @@ class PDFProcessor:
                 
                 current_text = current_page.get_text("text", clip=current_rect)
                 current_links = extract_links(current_page.get_links())
-                # current_text = " ".join(current_text.split("\n"))
                 current_text = process_page_text(current_text, current_links)
                 
                 if not current_text:  # Skip empty text blocks
@@ -438,7 +427,6 @@ class PDFProcessor:
                     )
                     
                     next_text = next_page.get_text("text", clip=next_rect)
-                    # next_text = " ".join(next_text.split("\n"))
                     next_links = extract_links(next_page.get_links())
                     next_text = process_page_text(next_text, next_links)
                     
@@ -470,7 +458,7 @@ class PDFProcessor:
             logging.error(f"Error extracting text from PDF: {e}")
             return ""
 
-    def extract_markdown(self, pdf_path: str) -> str:
+    def extract_markdown(self) -> str:
         """
         Extract content from PDF and convert to markdown format.
         
@@ -478,28 +466,21 @@ class PDFProcessor:
         and converts them to appropriate markdown syntax. Images are saved separately
         and referenced in the markdown.
         
-        Args:
-            pdf_path (str): Path to the PDF file
-            
         Returns:
             str: Generated markdown content
         """
-        pdf_path = Path(pdf_path)
-        pdf_name = pdf_path.stem
-        pdf_dir = Path('pdfs') / pdf_name
-        results_csv = pdf_dir / f'{pdf_name}_detections.csv'
-        output_md = pdf_dir / f'{pdf_name}.md'
-        images_dir = pdf_dir / 'md_images'
-        images_dir.mkdir(parents=True, exist_ok=True)
-        
-        if not Path(results_csv).exists():
-            logging.info(f"Detection results not found. Processing PDF: {pdf_path}")
+        if not Path(self.results_csv).exists():
+            logging.info(f"Detection results not found. Processing PDF: {self.pdf_path}")
             processor = PDFLayoutProcessor()
-            _, output_csv = processor.process_pdf(str(pdf_path))
-            results_csv = Path(output_csv)
+            _, output_csv = processor.process_pdf(str(self.pdf_path),str(self.output_dir))
+            self.results_csv = output_csv
+
+        output_md = self.pdf_dir / f'{self.pdf_name}.md'
+        images_dir = self.pdf_dir / 'md_images'
+        images_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            doc = fitz.open(pdf_path)
+            doc = fitz.open(self.pdf_path)
             markdown_content = []
             
             # Get PDF dimensions for scaling
@@ -512,7 +493,7 @@ class PDFProcessor:
             scale_y = pdf_height / (pdf_height * 300 / 72)
             
             # Read CSV file and store rows (excluding class 2)
-            with open(results_csv, 'r') as f:
+            with open(self.results_csv, 'r') as f:
                 csv_reader = csv.DictReader(f)
                 # Filter out class 2 entries
                 rows = [row for row in csv_reader if int(row['class_id']) != 2]
@@ -565,7 +546,7 @@ class PDFProcessor:
                     pix = current_page.get_pixmap(clip=current_rect)  
                     img_path = images_dir / f"figure_{i+1}.png"
                     pix.save(str(img_path))
-                    markdown_content.append(f"![Figure]({img_path.relative_to(pdf_dir)})\n\n")
+                    markdown_content.append(f"![Figure]({img_path.relative_to(self.pdf_dir)})\n\n")
                     
                 elif class_id == 4:  # Figure caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
@@ -577,7 +558,7 @@ class PDFProcessor:
                     pix = current_page.get_pixmap(clip=current_rect)
                     img_path = images_dir / f"table_{i+1}.png"
                     pix.save(str(img_path))
-                    markdown_content.append(f"![Table]({img_path.relative_to(pdf_dir)})\n\n")
+                    markdown_content.append(f"![Table]({img_path.relative_to(self.pdf_dir)})\n\n")
                     
                 elif class_id == 6:  # Table caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
@@ -608,25 +589,20 @@ class PDFProcessor:
             logging.error(f"Error extracting markdown from PDF: {e}")
             return ""   
     
-    def extract_sections(self, pdf_path: str, section_type=None):
+    def extract_sections(self, section_type=None):
         """
         Extracts specified sections from the given PDF.
-        :param pdf_path: Path to the PDF file.
         :param section_type: Type of section to extract. If None, extracts all sections.
         :param extract_all: If True, extracts all sections. If False, extracts only the specified section.
         
         :return: Dictionary of extracted sections.
         """
-        pdf_path = Path(pdf_path)
-        pdf_name = pdf_path.stem
-        pdf_dir = Path('pdfs') / pdf_name
-        pdf_txt = pdf_dir / f'{pdf_name}.txt'
+        pdf_txt = self.pdf_dir / f'{self.pdf_name}.txt'
         if not Path(pdf_txt).exists():
-            logging.info(f"Extracting text from PDF: {pdf_path}")
-            self.extract_text(pdf_path)
+            logging.info(f"Extracting text from PDF: {self.pdf_path}")
+            self.extract_text()
         with open(pdf_txt, 'r') as f:
             text = f.read()
-
 
         text_with_no_ref = remove_references_section(text)
        
@@ -653,19 +629,17 @@ class PDFProcessor:
             return extracted_section if extracted_section else ""
         return ""
 
-# def main():
-#     # Configuration
-#     pdf_path = '10.1002+nbm.1786.pdf'
+def main():
     
-# #     # Initialize and run processor
-#     processor = PDFProcessor(pdf_path)
-#     processor.extract_markdown(pdf_path)
+#     # Initialize and run processor
+    processor = PDFProcessor(pdf_path='10.1002+nbm.1786.pdf', output_dir='pdfs1')
+    processor.extract_markdown()
     
-#     if processor.remove_irrelevant_boxes():
-#         logging.info("PDF processing completed successfully")
-#     else:
-#         logging.error("PDF processing failed")
+# #     if processor.remove_irrelevant_boxes():
+# #         logging.info("PDF processing completed successfully")
+# #     else:
+# #         logging.error("PDF processing failed")
 
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()
