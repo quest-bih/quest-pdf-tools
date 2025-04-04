@@ -638,11 +638,11 @@ class PDFProcessor:
             return extracted_section if extracted_section else ""
         return ""
 
-def main():
+# def main():
     
-#     # Initialize and run processor
-    processor = PDFProcessor(pdf_path='elife-59907-v2.pdf', output_dir='pdfs1')
-    processor.extract_markdown()
+# #     # Initialize and run processor
+#     processor = PDFProcessor(pdf_path='elife-59907-v2.pdf', output_dir='pdfs1')
+#     processor.extract_markdown()
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
