@@ -409,6 +409,7 @@ class PDFProcessor:
                 current_text = current_page.get_text("text", clip=current_rect)
                 current_links = extract_links(current_page.get_links())
                 current_text = process_page_text(current_text, current_links)
+                current_text = remove_unicode(current_text)  # Remove Unicode characters
                 
                 if not current_text:  # Skip empty text blocks
                     continue
@@ -429,6 +430,7 @@ class PDFProcessor:
                     next_text = next_page.get_text("text", clip=next_rect)
                     next_links = extract_links(next_page.get_links())
                     next_text = process_page_text(next_text, next_links)
+                    next_text = remove_unicode(next_text)  # Remove Unicode characters
                     
                     # Check if current and next elements are from the same class
                     if current_row['class_id'] == next_row['class_id']:
@@ -516,11 +518,13 @@ class PDFProcessor:
                 if class_id == 0:  # Title
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"# {text}\n\n")
                     
                 elif class_id == 1:  # Plain text
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     
                     if i < len(rows) - 1:
                         next_row = rows[i + 1]
@@ -533,6 +537,7 @@ class PDFProcessor:
                         )
                         next_text = next_page.get_text("text", clip=next_rect).encode('utf-8').decode('utf-8')
                         next_text = " ".join(next_text.split("\n"))
+                        next_text = remove_unicode(next_text)  # Remove Unicode characters
                         
                         if int(next_row['class_id']) == 1 and next_text and next_text[0].islower():
                             markdown_content.append(f"{text} ")
@@ -551,6 +556,7 @@ class PDFProcessor:
                 elif class_id == 4:  # Figure caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id == 5:  # Table
@@ -563,16 +569,19 @@ class PDFProcessor:
                 elif class_id == 6:  # Table caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id == 7:  # Table footnote
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id in [8, 9]:  # Formula and formula caption
                     text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
+                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"```math\n{text}\n```\n\n")
 
             doc.close()
@@ -629,17 +638,11 @@ class PDFProcessor:
             return extracted_section if extracted_section else ""
         return ""
 
-# def main():
+def main():
     
-# #     # Initialize and run processor
-#     processor = PDFProcessor(pdf_path='10.1002+nbm.1786.pdf', output_dir='pdfs1')
-#     processor.extract_markdown()
-    
-# # #     if processor.remove_irrelevant_boxes():
-# # #         logging.info("PDF processing completed successfully")
-# # #     else:
-# # #         logging.error("PDF processing failed")
+#     # Initialize and run processor
+    processor = PDFProcessor(pdf_path='elife-59907-v2.pdf', output_dir='pdfs1')
+    processor.extract_markdown()
 
-
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()

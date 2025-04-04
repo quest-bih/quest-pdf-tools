@@ -1,4 +1,5 @@
 import re
+from unicodedata import normalize
 
 def clean_string(text):
     """
@@ -141,3 +142,14 @@ def process_page_text(text,links):
     text = join_text(text + '\n')
     return text
 
+def remove_unicode(text): 
+    """
+    Removes Unicode characters from text by encoding to ASCII and ignoring non-ASCII characters.
+
+    Args:
+        text (str): The text to remove Unicode characters from.
+
+    Returns:
+        str: Text with Unicode characters removed.
+    """
+    return normalize('NFKD', text).encode('ascii','ignore').decode('ascii')  
