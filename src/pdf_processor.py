@@ -37,19 +37,27 @@ class PDFProcessor:
         page_height (float): Height of the PDF page in points
     """
     
-    def __init__(self, pdf_path: str, results_csv: str, output_pdf: str):
+    def __init__(self, pdf_path: str, results_csv: str = None, output_pdf: str = None):
         """
         Initialize the PDF processor with file paths.
         
         Args:
             pdf_path (str): Path to the input PDF file
-            results_csv (str): Path to the CSV file containing detection results
-            output_pdf (str): Path where the processed PDF will be saved
+            results_csv (str, optional): Path to the CSV file containing detection results. 
+                                         If None, defaults to "{pdf_name}_results.csv"
+            output_pdf (str, optional): Path where the processed PDF will be saved.
+                                        If None, defaults to "{pdf_name}_processed.pdf"
         """
         self.pdf_path = pdf_path
         self.pdf_name = Path(pdf_path).stem
         self.pdf_dir = Path('pdfs') / self.pdf_name
         self.pdf_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Set default values if not provided
+        if results_csv is None:
+            results_csv = f"{self.pdf_name}_results.csv"
+        if output_pdf is None:
+            output_pdf = f"{self.pdf_name}_processed.pdf"
         
         # Update paths to use pdf directory
         self.results_csv = str(self.pdf_dir / Path(results_csv).name)
@@ -648,11 +656,11 @@ class PDFProcessor:
 # def main():
 #     # Configuration
 #     pdf_path = '10.1002+nbm.1786.pdf'
-#     results_csv = pdf_path.replace('.pdf', '_detections.csv')
-#     output_pdf = pdf_path.replace('.pdf', '_cleaned.pdf')
     
-#     # Initialize and run processor
-#     processor = PDFProcessor(pdf_path, results_csv, output_pdf)
+# #     # Initialize and run processor
+#     processor = PDFProcessor(pdf_path)
+#     processor.extract_markdown(pdf_path)
+    
 #     if processor.remove_irrelevant_boxes():
 #         logging.info("PDF processing completed successfully")
 #     else:
