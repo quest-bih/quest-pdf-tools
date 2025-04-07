@@ -516,15 +516,19 @@ class PDFProcessor:
                 
                 # Handle different content types
                 if class_id == 0:  # Title
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect)
+                    current_links = extract_links(current_page.get_links())
+                    text = process_page_text(text, current_links)
+                    text = remove_unicode(text)
                     text = " ".join(text.split("\n"))
-                    text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"# {text}\n\n")
                     
                 elif class_id == 1:  # Plain text
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect)
+                    current_links = extract_links(current_page.get_links())
+                    text = process_page_text(text, current_links)
+                    text = remove_unicode(text)
                     text = " ".join(text.split("\n"))
-                    text = remove_unicode(text)  # Remove Unicode characters
                     
                     if i < len(rows) - 1:
                         next_row = rows[i + 1]
@@ -535,9 +539,11 @@ class PDFProcessor:
                             float(next_row['x1']) * scale_x,
                             float(next_row['y1']) * scale_y
                         )
-                        next_text = next_page.get_text("text", clip=next_rect).encode('utf-8').decode('utf-8')
+                        next_text = next_page.get_text("text", clip=next_rect)
+                        next_links = extract_links(next_page.get_links())
+                        next_text = process_page_text(next_text, next_links)
+                        next_text = remove_unicode(next_text)
                         next_text = " ".join(next_text.split("\n"))
-                        next_text = remove_unicode(next_text)  # Remove Unicode characters
                         
                         if int(next_row['class_id']) == 1 and next_text and next_text[0].islower():
                             markdown_content.append(f"{text} ")
