@@ -164,7 +164,7 @@ async def extract_figures(file: UploadFile):
         
         if not extracted_figures:
             return JSONResponse(
-                status_code=404,
+                status_code=200,
                 content={"message": "No figures found in the PDF"}
             )
 
@@ -224,7 +224,7 @@ async def extract_tables(file: UploadFile):
         
         if not extracted_tables:
             return JSONResponse(
-                status_code=404,
+                status_code=200,
                 content={"message": "No tables found in the PDF"}
             )
 
