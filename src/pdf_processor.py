@@ -616,9 +616,12 @@ class PDFProcessor:
         if not Path(pdf_txt).exists():
             logging.info(f"Extracting text from PDF: {self.pdf_path}")
             self.extract_text()
+        
+        # Read text and remove references before extracting sections
         with open(pdf_txt, 'r') as f:
             text = f.read()
-
+        
+        # Remove references section before extracting any sections
         text_with_no_ref = remove_references_section(text)
        
         # Define terms based on the section type
