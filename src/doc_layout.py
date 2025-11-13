@@ -1,4 +1,3 @@
-
 import logging
 import shutil
 from doclayout_yolo import YOLOv10
@@ -257,72 +256,229 @@ class PDFLayoutProcessor:
 
     def _reorder_detections(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Reorder detected elements based on page layout analysis.
-        
-        Analyzes the layout to determine column structure and orders elements
-        according to reading order (top-to-bottom, left-to-right).
-        
+        Reorder detected elements based on page layout analysis, handling potential
+        mixed layouts within a single page (e.g., single-column header, two-column body).
+
+        Analyzes the layout by segmenting the page vertically, determining the column
+        structure within each segment, and ordering elements according to reading order
+        (top-to-bottom across segments, then left-to-right within columns of each segment).
+
         Args:
-            elements (List[Dict[str, Any]]): List of detected elements
-            
+            elements (List[Dict[str, Any]]): List of detected elements for a single page.
+
         Returns:
-            List[Dict[str, Any]]: Reordered elements following natural reading order
+            List[Dict[str, Any]]: Reordered elements following natural reading order.
         """
         if not elements:
-            return elements
-        
-        # First, filter out overlapping elements
-        elements = self._filter_overlapping_elements(elements)
-        
-        # Convert elements to numpy arrays for analysis
-        boxes = np.array([elem['coordinates'] for elem in elements])
-        
-        # Calculate page dimensions
-        page_width = np.max(boxes[:, 2])  # rightmost coordinate
-        page_height = np.max(boxes[:, 3])  # bottommost coordinate
-        
-        # Detect the number of columns
-        num_columns = self._detect_columns(boxes, page_width)
-        
-        if num_columns == 1:
-            # Single column: Sort all elements top-to-bottom
-            return self._sort_single_column(elements)
-        elif num_columns == 2:
-            # Two columns: Separate into left and right columns, then sort each
-            return self._sort_two_columns(elements, page_width / 2)
-        elif num_columns == 3:
-            # Three columns: Separate into three columns, then sort each
-            return self._sort_three_columns(elements, page_width / 3, 2 * page_width / 3)
-        else:
-            # Irregular layout: Process section by section
-            return self._process_irregular_layout(elements, page_height)
+            return []
 
-    def _detect_columns(self, boxes: np.ndarray, page_width: float) -> int:
+        # 1. Filter out significantly overlapping elements first
+        elements = self._filter_overlapping_elements(elements)
+        if not elements: # Check again after filtering
+            return []
+
+        # 2. Sort elements primarily by top coordinate (y0) for initial ordering
+        elements.sort(key=lambda elem: elem['coordinates'][1])
+
+        # 3. Segment the page vertically based on significant gaps
+        sections = []
+        current_section = []
+        if elements:
+            current_section.append(elements[0])
+            max_y_in_section = elements[0]['coordinates'][3] # y1
+
+            for i in range(1, len(elements)):
+                prev_elem = elements[i-1]
+                current_elem = elements[i]
+                y0_current = current_elem['coordinates'][1]
+                # Use max_y_in_section instead of just prev_elem's y1 to handle nested elements better
+                gap = y0_current - max_y_in_section
+                avg_height = (prev_elem['coordinates'][3] - prev_elem['coordinates'][1] +
+                              current_elem['coordinates'][3] - current_elem['coordinates'][1]) / 2
+                # Define a significant gap (e.g., more than half the average element height)
+                if gap > avg_height * 0.5:
+                    if current_section:
+                        sections.append(current_section)
+                    current_section = [current_elem]
+                    max_y_in_section = current_elem['coordinates'][3]
+                else:
+                    current_section.append(current_elem)
+                    max_y_in_section = max(max_y_in_section, current_elem['coordinates'][3])
+
+            if current_section: # Add the last section
+                sections.append(current_section)
+
+        # 4. Process each section
+        reordered_elements = []
+        for section_elements in sections:
+            if not section_elements:
+                continue
+
+            # Convert section elements to numpy array for analysis
+            boxes = np.array([elem['coordinates'] for elem in section_elements])
+
+            # Calculate effective section width and detect columns within the section
+            section_min_x = np.min(boxes[:, 0])
+            section_max_x = np.max(boxes[:, 2])
+            section_width = section_max_x - section_min_x
+
+            # Adapt _detect_columns slightly or use it directly if robust enough
+            # Need to pass section-specific info if _detect_columns is adapted
+            num_columns = self._detect_columns(boxes, section_width, section_min_x) # Pass min_x offset
+
+            # Sort elements within the section based on detected columns
+            if num_columns == 1:
+                sorted_section = self._sort_single_column(section_elements)
+            elif num_columns == 2:
+                # Calculate middle line relative to the section's content
+                middle_line = section_min_x + section_width / 2
+                sorted_section = self._sort_two_columns(section_elements, middle_line)
+            elif num_columns == 3:
+                # Calculate column lines relative to the section's content
+                left_line = section_min_x + section_width / 3
+                right_line = section_min_x + 2 * section_width / 3
+                sorted_section = self._sort_three_columns(section_elements, left_line, right_line)
+            else: # Fallback for irregular or ambiguous sections
+                 # Using single column sort as a robust fallback for irregular sections
+                logger.warning(f"Section detected with {num_columns} columns, falling back to single-column sort for this section.")
+                sorted_section = self._sort_single_column(section_elements)
+
+            reordered_elements.extend(sorted_section)
+
+        return reordered_elements
+
+
+    def _detect_columns(self, boxes: np.ndarray, region_width: float, region_min_x: float = 0) -> int:
         """
-        Detect the number of columns in the layout using histogram analysis.
-        
+        Detect the number of columns within a specific region (e.g., a page section).
+
         Args:
-            boxes (np.ndarray): Array of bounding boxes
-            page_width (float): Width of the page
-            
+            boxes (np.ndarray): Array of bounding boxes [(x0, y0, x1, y1), ...] within the region.
+            region_width (float): The calculated width of the region being analyzed.
+            region_min_x (float): The minimum x-coordinate (left boundary) of the region. Defaults to 0.
+
         Returns:
-            int: Number of columns detected (1, 2, or 3)
+            int: Number of columns detected (1, 2, or 3). Returns 1 as a default/fallback.
         """
-        x_coords = boxes[:, 0]  # Extract x-coordinates of bounding boxes
-        histogram, bin_edges = np.histogram(x_coords, bins=20, range=(0, page_width))
-        
-        # Identify significant peaks in the histogram (indicating columns)
-        peaks = [i for i, count in enumerate(histogram) if count > len(boxes) * 0.1]
-        
-        # Determine the number of columns based on the number of peaks
-        if len(peaks) <= 1:
+        if boxes.shape[0] < 2 or region_width <= 0:
             return 1
-        elif len(peaks) == 2:
-            return 2
-        elif len(peaks) >= 3:
-            return 3
-        else:
-            return 1  # Default to single column if unsure
+
+        # Calculate element centers and widths
+        x_centers = (boxes[:, 0] + boxes[:, 2]) / 2 - region_min_x
+        widths = boxes[:, 2] - boxes[:, 0]
+        
+        # Use adaptive binning based on element count and width
+        num_bins = min(30, max(10, boxes.shape[0] // 2))
+        
+        try:
+            # Calculate both density and raw counts
+            histogram, bin_edges = np.histogram(x_centers, bins=num_bins, range=(0, region_width), density=True)
+            counts, _ = np.histogram(x_centers, bins=num_bins, range=(0, region_width))
+        except ValueError as e:
+            logger.warning(f"Histogram calculation failed: {e}. Defaulting to 1 column.")
+            return 1
+
+        # Calculate adaptive thresholds
+        avg_density = np.mean(histogram)
+        density_threshold = max(avg_density * 1.2, 1.0 / region_width)
+        min_elements_threshold = max(2, boxes.shape[0] * 0.05)
+
+        # Find significant peaks with improved criteria
+        peaks_indices = []
+        for i in range(num_bins):
+            if counts[i] < min_elements_threshold:
+                continue
+
+            # Check if current bin is a peak
+            is_peak = True
+            if histogram[i] < density_threshold:
+                is_peak = False
+            
+            # Check left and right neighbors
+            if i > 0 and histogram[i] <= histogram[i-1]:
+                is_peak = False
+            if i < num_bins - 1 and histogram[i] <= histogram[i+1]:
+                is_peak = False
+
+            if is_peak:
+                peaks_indices.append(i)
+
+        # Filter and merge close peaks
+        if not peaks_indices:
+            return 1
+
+        filtered_peaks = [peaks_indices[0]]
+        for i in range(1, len(peaks_indices)):
+            # Calculate distance between peaks
+            peak_distance = (bin_edges[peaks_indices[i]] - bin_edges[filtered_peaks[-1]]) / region_width
+            
+            # If peaks are too close, keep the one with higher density
+            if peak_distance < 0.15:  # 15% of region width
+                if histogram[peaks_indices[i]] > histogram[filtered_peaks[-1]]:
+                    filtered_peaks[-1] = peaks_indices[i]
+            else:
+                filtered_peaks.append(peaks_indices[i])
+
+        num_peaks = len(filtered_peaks)
+
+        # Analyze column separation and distribution
+        if num_peaks == 1:
+            # Check if single peak might actually be multiple columns
+            peak_pos = (bin_edges[filtered_peaks[0]] + bin_edges[filtered_peaks[0]+1]) / 2
+            left_elements = np.sum(x_centers < peak_pos)
+            right_elements = np.sum(x_centers >= peak_pos)
+            
+            # If elements are roughly balanced on both sides, might be 2 columns
+            if min(left_elements, right_elements) > 0.3 * boxes.shape[0]:
+                # Check if there's a significant gap in the middle
+                middle_region = (peak_pos - 0.1 * region_width, peak_pos + 0.1 * region_width)
+                middle_elements = np.sum((x_centers >= middle_region[0]) & (x_centers <= middle_region[1]))
+                if middle_elements < 0.1 * boxes.shape[0]:
+                    return 2
+            return 1
+
+        elif num_peaks == 2:
+            # Calculate peak positions and separation
+            peak_pos = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in filtered_peaks]
+            separation = abs(peak_pos[0] - peak_pos[1]) / region_width
+            
+            if separation > 0.25:  # Need significant separation for 2 columns
+                # Check if elements are roughly balanced between columns
+                left_elements = np.sum(x_centers < (peak_pos[0] + peak_pos[1]) / 2)
+                right_elements = boxes.shape[0] - left_elements
+                if min(left_elements, right_elements) > 0.2 * boxes.shape[0]:
+                    return 2
+            return 1
+
+        elif num_peaks >= 3:
+            # Calculate peak positions and analyze spacing
+            peak_pos = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in filtered_peaks]
+            peak_pos.sort()
+            
+            # Calculate gaps between peaks
+            gaps = np.diff(peak_pos)
+            avg_gap = np.mean(gaps)
+            
+            # Check if gaps are roughly equal and significant
+            if avg_gap / region_width > 0.15 and np.std(gaps) / avg_gap < 0.5:
+                # Check element distribution across columns
+                column_boundaries = [0] + [(peak_pos[i] + peak_pos[i+1]) / 2 for i in range(len(peak_pos)-1)] + [region_width]
+                column_counts = []
+                for i in range(len(column_boundaries)-1):
+                    count = np.sum((x_centers >= column_boundaries[i]) & (x_centers < column_boundaries[i+1]))
+                    column_counts.append(count)
+                
+                # If columns have roughly equal number of elements
+                if min(column_counts) > 0.15 * boxes.shape[0]:
+                    return 3
+            
+            # Fallback to 2 columns if outer peaks are well separated
+            if abs(peak_pos[0] - peak_pos[-1]) / region_width > 0.4:
+                return 2
+            
+            return 1
+
+        return 1
 
     def _sort_single_column(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
