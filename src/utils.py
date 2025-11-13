@@ -13,7 +13,6 @@ def clean_string(text):
                 characters stripped.
     """
     
-    text =  text.replace('\xa0', ' ').strip().encode('ascii', 'ignore').decode("iso-8859-8")
     text = text.replace("Conicts of Interest", "Conflict of Interest")
     text = text.replace("condential","confidential")
     text = text.replace("supplement le","supplement file")
@@ -142,14 +141,19 @@ def process_page_text(text,links):
     text = join_text(text + '\n')
     return text
 
-def remove_unicode(text): 
+def remove_unicode(text):
     """
-    Removes Unicode characters from text by encoding to ASCII and ignoring non-ASCII characters.
+    Removes all Unicode characters from text except hyphens (ASCII hyphen-minus only).
 
     Args:
-        text (str): The text to remove Unicode characters from.
+        text (str): The text to process.
 
     Returns:
-        str: Text with Unicode characters removed.
+        str: Text with all non-ASCII characters removed, except ASCII hyphens.
     """
-    return normalize('NFKD', text).encode('ascii','ignore').decode('ascii')  
+    # Only allow ASCII characters and ASCII hyphens (code 0x2D)
+    # [\x00-\x7F] includes all ASCII, so keep only those, but remove non-ASCII hyphens BEFORE stripping others
+    # First, convert any non-ASCII hyphen-like characters to ASCII hyphen
+    text = text.replace("–", "-").replace("—", "-").replace("‐", "-")
+    # Remove all non-ASCII characters except the ASCII hyphen-minus (0x2D)
+    return re.sub(r'[^\x00-\x7F]', '', text)
