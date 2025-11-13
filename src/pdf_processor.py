@@ -406,7 +406,7 @@ class PDFProcessor:
                     float(current_row['y1']) * scale_y
                 )
                 
-                current_text = current_page.get_text("text", clip=current_rect)
+                current_text = current_page.get_text("text", clip=current_rect, flags=0)
                 current_links = extract_links(current_page.get_links())
                 current_text = process_page_text(current_text, current_links)
                 current_text = remove_unicode(current_text)  # Remove Unicode characters
@@ -427,7 +427,7 @@ class PDFProcessor:
                         float(next_row['y1']) * scale_y
                     )
                     
-                    next_text = next_page.get_text("text", clip=next_rect)
+                    next_text = next_page.get_text("text", clip=next_rect, flags=0)
                     next_links = extract_links(next_page.get_links())
                     next_text = process_page_text(next_text, next_links)
                     next_text = remove_unicode(next_text)  # Remove Unicode characters
@@ -516,7 +516,7 @@ class PDFProcessor:
                 
                 # Handle different content types
                 if class_id == 0:  # Title
-                    text = current_page.get_text("text", clip=current_rect)
+                    text = current_page.get_text("text", clip=current_rect, flags=0)
                     current_links = extract_links(current_page.get_links())
                     text = process_page_text(text, current_links)
                     text = remove_unicode(text)
@@ -524,7 +524,7 @@ class PDFProcessor:
                     markdown_content.append(f"# {text}\n\n")
                     
                 elif class_id == 1:  # Plain text
-                    text = current_page.get_text("text", clip=current_rect)
+                    text = current_page.get_text("text", clip=current_rect, flags=0)
                     current_links = extract_links(current_page.get_links())
                     text = process_page_text(text, current_links)
                     text = remove_unicode(text)
@@ -539,7 +539,7 @@ class PDFProcessor:
                             float(next_row['x1']) * scale_x,
                             float(next_row['y1']) * scale_y
                         )
-                        next_text = next_page.get_text("text", clip=next_rect)
+                        next_text = next_page.get_text("text", clip=next_rect, flags=0)
                         next_links = extract_links(next_page.get_links())
                         next_text = process_page_text(next_text, next_links)
                         next_text = remove_unicode(next_text)
@@ -560,7 +560,7 @@ class PDFProcessor:
                     markdown_content.append(f"![Figure]({img_path.relative_to(self.pdf_dir)})\n\n")
                     
                 elif class_id == 4:  # Figure caption
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect, flags=0).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
                     text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
@@ -573,19 +573,19 @@ class PDFProcessor:
                     markdown_content.append(f"![Table]({img_path.relative_to(self.pdf_dir)})\n\n")
                     
                 elif class_id == 6:  # Table caption
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect, flags=0).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
                     text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id == 7:  # Table footnote
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect, flags=0).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
                     text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"__*{text}__*\n\n")
                     
                 elif class_id in [8, 9]:  # Formula and formula caption
-                    text = current_page.get_text("text", clip=current_rect).encode('utf-8').decode('utf-8')
+                    text = current_page.get_text("text", clip=current_rect, flags=0).encode('utf-8').decode('utf-8')
                     text = " ".join(text.split("\n"))
                     text = remove_unicode(text)  # Remove Unicode characters
                     markdown_content.append(f"```math\n{text}\n```\n\n")
