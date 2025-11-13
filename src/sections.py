@@ -25,7 +25,7 @@ COI = ['Conflicts of Interest','Competing interest statement','Declaration of in
        'Potential competing interests']
 
 SUPP_DATA = ['Supplemental data','Supplementary data','Supplemental material','Supplementary materials','Supplementary material','Supplemental information',
-             'Supplementary Materials Captions','Supporting Information']
+             'Supplementary Materials Captions','Supporting Information','Supporting Informations']
 
 DISCUSSION_TERMS = ['Discussion', 'Discussions', 'Discussion and conclusion', 'Discussion and Conclusions', 
                     'General discussion', 'Lessons learned','Results and discussion']
