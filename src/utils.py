@@ -155,5 +155,9 @@ def remove_unicode(text):
     # [\x00-\x7F] includes all ASCII, so keep only those, but remove non-ASCII hyphens BEFORE stripping others
     # First, convert any non-ASCII hyphen-like characters to ASCII hyphen
     text = text.replace("–", "-").replace("—", "-").replace("‐", "-")
+    # Replace non-breaking space with regular space
+    text = text.replace("\xa0", "")
     # Remove all non-ASCII characters except the ASCII hyphen-minus (0x2D)
-    return re.sub(r'[^\x00-\x7F]', '', text)
+    text = re.sub(r'[^\x00-\x7F]', '', text)
+    
+    return text.encode('ascii', 'ignore').decode('ascii')
