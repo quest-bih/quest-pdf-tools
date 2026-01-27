@@ -35,7 +35,7 @@ METHODS_TERMS = ['Method details','System and methods','Methods and results',"Me
                  'Material and Method', 'Material and methods','Experimental methods','Materials and Methods', 'Materials and methods', 'Material & Method',
                  'Material & method',  'Materials & Methods', 'Materials & methods',  'Online Methods', 'Online methods', 'Online method', 'Online Method',
                  'Experimental procedures','Study population and procedures','Patients and methods','Material, Design and Procedure',
-                 'Experimental model and subject details','Experimental Section','Methods and analysis']
+                 'Experimental model and subject details','Experimental Section','Methods and analysis','xperimental model and subject det']
 
 RESULTS_TERMS = ['Results','Result','Results and discussion','Outputs','Patient Outcome']
 

@@ -38,6 +38,8 @@ def clean_string(text):
     text = text.replace("pub licly","publicly")
     text = text.replace("comprise","compromise")
     text = text.replace("sensi ble","sensible")
+    text = text.replace("xperimental model and subject det","Experimental model and subject details")
+    text = text.replace("XPERIMENTAL MODEL AND SUBJECT DETA","Experimental model and subject details")
     text = re.sub(r'www\.\s+', 'www.', text)
 
     return text
