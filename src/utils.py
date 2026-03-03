@@ -40,6 +40,9 @@ def clean_string(text):
     text = text.replace("sensi ble","sensible")
     text = text.replace("xperimental model and subject det","Experimental model and subject details")
     text = text.replace("XPERIMENTAL MODEL AND SUBJECT DETA","Experimental model and subject details")
+    text = text.replace("Methods2","Methods")
+    # text = text.replace("Methods Methods f","Methods")
+    # text = text.replace("Methods Ethical statement", "Methods\nEthical statement")
     text = re.sub(r'www\.\s+', 'www.', text)
 
     return text

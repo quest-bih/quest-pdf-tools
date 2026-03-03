@@ -1,7 +1,8 @@
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import zipfile
 import io
+import argparse
 from pathlib import Path
 import uvicorn
 import shutil
@@ -347,7 +348,8 @@ async def extract_markdown(file: UploadFile):
 @app.post("/extract-sections/")
 async def extract_sections(
     file: UploadFile, 
-    section_type: str = None
+    section_type: str = None,
+    alt: bool = Query(default=False, description="Use alternative pymupdf4llm-based text extraction")
 ):
     """
     Extract specific sections from a PDF file.
@@ -364,6 +366,8 @@ async def extract_sections(
                                     - "das": Extracts data analysis section
                                     - "all": Extracts all available sections
                                     If None or empty, extracts all sections.
+        alt (bool, optional): If True, uses pymupdf4llm-based text extraction. Defaults to False,
+                              or to the --alt CLI flag value when the server is started.
         
     Returns:
         JSONResponse: Dictionary containing extracted section(s):
@@ -375,6 +379,8 @@ async def extract_sections(
         HTTPException (500): If section extraction fails due to processing errors.
     """
     try:
+        use_alt = alt or os.getenv("USE_ALT_EXTRACTION", "false").lower() == "true"
+
         # Create a unique directory for this PDF
         pdf_dir = UPLOADS_DIR / Path(file.filename).stem
         pdf_dir.mkdir(exist_ok=True)
@@ -398,6 +404,7 @@ async def extract_sections(
         # Extract sections
         extracted_content = processor.extract_sections(
             section_type=section_type,
+            alt=use_alt,
         )
         
         # Return appropriate response based on extraction mode
@@ -415,6 +422,19 @@ if __name__ == "__main__":
     
     # Load environment variables from .env file
     load_dotenv()
+
+    parser = argparse.ArgumentParser(description="PDF Processing API server")
+    parser.add_argument(
+        "--alt",
+        action="store_true",
+        default=False,
+        help="Use alternative pymupdf4llm-based text extraction for section extraction"
+    )
+    cli_args = parser.parse_args()
+
+    if cli_args.alt:
+        os.environ["USE_ALT_EXTRACTION"] = "true"
+        logger.info("Alternative text extraction (pymupdf4llm) enabled globally")
     
     # Get port from environment variables, default to 8000 if not set
     port = int(os.getenv('FAST_API_PORT', 8000))

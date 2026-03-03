@@ -134,7 +134,7 @@ def extract_sections_from_pdf(file):
         gr.Warning("Please upload a PDF file first.")
         return None, None, None, None, None
     
-    API_URL = "http://localhost:8000/extract-sections"
+    API_URL = "http://localhost:8000/extract-sections/"
     input_filename = os.path.basename(file.name)
     files = {"file": (input_filename, open(file.name, "rb"), "application/pdf")}
     

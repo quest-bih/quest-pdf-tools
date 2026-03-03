@@ -33,7 +33,9 @@ psutil==6.1.1
 py-cpuinfo==9.0.0
 pydantic==2.10.6
 pydantic_core==2.27.2
-PyMuPDF==1.26.6
+PyMuPDF==1.27.1
+pymupdf4llm==0.3.4
+pymupdf_layout==1.27.1
 pyparsing==3.2.1
 python-dateutil==2.9.0.post0
 python-multipart==0.0.20

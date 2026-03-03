@@ -1,6 +1,8 @@
 import os
 import csv
 import fitz  # PyMuPDF
+import pymupdf.layout
+import pymupdf4llm
 from typing import List, Dict
 import logging
 from pathlib import Path
@@ -460,6 +462,34 @@ class PDFProcessor:
             logging.error(f"Error extracting text from PDF: {e}")
             return ""
 
+    def extract_text_alt(self) -> str:
+        """
+        Alternative text extraction using pymupdf4llm, which produces cleaner
+        output without requiring layout detection results.
+        """
+        output_txt = self.pdf_dir / f'{self.pdf_name}_alt.txt'
+
+        try:
+            doc = fitz.open(self.pdf_path)
+            text = pymupdf4llm.to_text(doc, header=False, footer=False)
+            text = re.sub(r'==> picture \[.*?\] <==', '', text)
+            text = re.sub(
+                r'----- Start of picture text -----.*?----- End of picture text -----',
+                '', text, flags=re.DOTALL
+            )
+            text = remove_unicode(text)
+            doc.close()
+
+            with open(output_txt, 'w', encoding='utf-8') as f:
+                f.write(text)
+
+            logging.info(f"Alt extracted text saved to: {output_txt}")
+            return text
+
+        except Exception as e:
+            logging.error(f"Error extracting text (alt) from PDF: {e}")
+            return ""
+
     def extract_markdown(self) -> str:
         """
         Extract content from PDF and convert to markdown format.
@@ -604,18 +634,24 @@ class PDFProcessor:
             logging.error(f"Error extracting markdown from PDF: {e}")
             return ""   
     
-    def extract_sections(self, section_type=None):
+    def extract_sections(self, section_type=None, alt=False):
         """
         Extracts specified sections from the given PDF.
         :param section_type: Type of section to extract. If None, extracts all sections.
-        :param extract_all: If True, extracts all sections. If False, extracts only the specified section.
+        :param alt: If True, uses pymupdf4llm-based text extraction instead of layout-based.
         
         :return: Dictionary of extracted sections.
         """
-        pdf_txt = self.pdf_dir / f'{self.pdf_name}.txt'
-        if not Path(pdf_txt).exists():
-            logging.info(f"Extracting text from PDF: {self.pdf_path}")
-            self.extract_text()
+        if alt:
+            pdf_txt = self.pdf_dir / f'{self.pdf_name}_alt.txt'
+            if not Path(pdf_txt).exists():
+                logging.info(f"Extracting text (alt) from PDF: {self.pdf_path}")
+                self.extract_text_alt()
+        else:
+            pdf_txt = self.pdf_dir / f'{self.pdf_name}.txt'
+            if not Path(pdf_txt).exists():
+                logging.info(f"Extracting text from PDF: {self.pdf_path}")
+                self.extract_text()
         
         # Read text and remove references before extracting sections
         with open(pdf_txt, 'r') as f:

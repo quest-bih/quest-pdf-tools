@@ -18,12 +18,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_backend():
+def run_backend(alt=False):
     """Start the FastAPI backend server"""
     logging.info("Starting backend server...")
     try:
         logging.info(f"You can now access the backend API on http://127.0.0.1:{back_end_port}")
-        subprocess.run([sys.executable, "src/api.py"], check=True) 
+        cmd = [sys.executable, "src/api.py"]
+        if alt:
+            cmd.append("--alt")
+        subprocess.run(cmd, check=True) 
     except subprocess.CalledProcessError as e:
         logging.error(f"Error starting backend server: {e}")
         sys.exit(1)
@@ -46,15 +49,24 @@ def main():
         default="full",
         help="Run mode: 'backend' for API only, 'full' for both frontend and backend (default: full)"
     )
+    parser.add_argument(
+        "--alt",
+        action="store_true",
+        default=False,
+        help="Use alternative pymupdf4llm-based text extraction for section extraction"
+    )
 
     args = parser.parse_args()
 
     if args.mode == "backend":
-        run_backend()
+        run_backend(alt=args.alt)
     else:  # full mode
         # Start backend in a separate process
         logging.info(f"You can now access the backend API on http://127.0.0.1:{back_end_port}")
-        backend_process = subprocess.Popen([sys.executable, "src/api.py"])
+        backend_cmd = [sys.executable, "src/api.py"]
+        if args.alt:
+            backend_cmd.append("--alt")
+        backend_process = subprocess.Popen(backend_cmd)
         try:
             # Start frontend (this will block until frontend is closed)
             run_frontend()

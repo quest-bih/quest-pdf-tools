@@ -8,6 +8,7 @@ A FastAPI-based web application and API service for processing PDF documents, pr
 - **PDF Layout Analysis**: Detects and annotates different document elements including titles, text blocks, figures, tables, and formulas
 - **Irrelevant Content Removal**: Automatically identifies and removes headers, footers, and other irrelevant content from PDFs
 - **Section Extraction**: Identifies and extracts logical document sections like Methods, Discussion, Results, etc.
+- **Alternative Text Extraction**: Optional `pymupdf4llm`-based extraction mode that bypasses layout detection for cleaner output on some documents
 - **Figure Extraction**: Extracts and exports figures from PDFs into separate image files
 - **Table Extraction**: Identifies and exports tables from PDFs into separate files
 - **Text Extraction**: Extracts plain text content from PDFs with preserved formatting
@@ -74,6 +75,17 @@ The frontend will be available at  `127.0.0.1:<GRADIO_PORT>` while the backend w
 python src/run.py --mode backend
 ```
 The backend will be available at `127.0.0.1:<FAST_API_PORT>`
+
+3. Alternative text extraction mode:
+
+Use the `--alt` flag to enable an alternative text extraction method based on [pymupdf4llm](https://github.com/pymupdf/RAG). This bypasses layout-based text extraction and can produce cleaner output for some documents.
+
+```bash
+python src/run.py --mode full --alt
+python src/run.py --mode backend --alt
+```
+
+The `--alt` flag sets the default extraction method globally. You can also override it per request via the `alt` query parameter on the `/extract-sections/` endpoint.
 
 ## Docker Installation & Usage
 
@@ -183,8 +195,21 @@ curl -X POST "http://localhost:8000/extract-markdown/" \
 
 Identifies and extracts logical document sections (Methods, Results, Discussion, etc.) and returns them as JSON.
 
+**Query Parameters**:
+- `section_type` (optional): The section to extract (e.g. `methods`, `results`, `discussion`, `das`, `all`). Defaults to extracting all sections.
+- `alt` (optional, boolean): If `true`, uses the alternative `pymupdf4llm`-based text extraction instead of layout-based extraction. Defaults to `false`, or to the `--alt` CLI flag value when the server was started.
+
 ```bash
 curl -X POST "http://localhost:8000/extract-sections/" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@your_document.pdf" \
+     -F "section_type=methods"
+```
+
+Using alternative text extraction:
+```bash
+curl -X POST "http://localhost:8000/extract-sections/?alt=true" \
      -H "accept: application/json" \
      -H "Content-Type: multipart/form-data" \
      -F "file=@your_document.pdf" \
@@ -236,6 +261,7 @@ Below are examples demonstrating the various processing capabilities of Quest PD
 
 - [FastAPI](https://github.com/fastapi/fastapi) - Modern, fast web framework for building APIs with Python
 - [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - Python bindings for the MuPDF PDF library
+- [pymupdf4llm](https://github.com/pymupdf/RAG) - Alternative text extraction optimized for LLM consumption
 - [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO) - YOLO-based document layout analysis model
 - [PyTorch](https://pytorch.org/) - Open source machine learning framework
 - [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server implementation
