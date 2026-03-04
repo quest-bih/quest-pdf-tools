@@ -478,6 +478,21 @@ class PDFProcessor:
                 '', text, flags=re.DOTALL
             )
             text = remove_unicode(text)
+            final_text = clean_string(final_text)
+            # Apply similar re.sub rule for each main section term:
+            for section, terms in {
+                "Methods": METHODS_TERMS,
+                "Discussion": DISCUSSION_TERMS,
+                "Results": RESULTS_TERMS,
+                "Data availability": DATA_AVAILABILITY
+            }.items():
+                for term in terms:
+                    # Only apply to terms that are a single word (for sane splitting after, and to avoid over-matching)
+                    # This mimics the pattern: section term at line start, spaces, then a cap word, merges => split by inserting newline
+                    safe_term = re.escape(term.strip(":").strip())
+                    pattern = rf'(?m)^({safe_term})([ ]+)([A-Z][a-zA-Z]*)'
+                    # \1 = section name, \3 = next word, drop the spaces between them
+                    text = re.sub(pattern, r'\1\n\3', text)
             doc.close()
 
             with open(output_txt, 'w', encoding='utf-8') as f:
