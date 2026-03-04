@@ -471,7 +471,7 @@ class PDFProcessor:
 
         try:
             doc = fitz.open(self.pdf_path)
-            text = pymupdf4llm.to_text(doc, header=False, footer=False)
+            text = pymupdf4llm.to_text(doc, header=False, footer=False,show_progress=True)
             text = re.sub(r'==> picture \[.*?\] <==', '', text)
             text = re.sub(
                 r'----- Start of picture text -----.*?----- End of picture text -----',
